@@ -1,5 +1,6 @@
 package com.example.poswarnus.data.catalog
 
+import com.example.poswarnus.data.local.CatalogTransactionRunner
 import com.example.poswarnus.data.local.CategoryDao
 import com.example.poswarnus.data.local.CategoryEntity
 import com.example.poswarnus.data.local.MenuItemDao
@@ -27,6 +28,7 @@ class CatalogRepositoryImpl(
     private val categoryDao: CategoryDao,
     private val menuItemDao: MenuItemDao,
     private val remote: CatalogRemoteDataSource,
+    private val transactionRunner: CatalogTransactionRunner,
 ) : CatalogRepository {
     override val categories: Flow<List<Category>> = categoryDao.observeAll().map { entities ->
         entities.map { Category(it.id, it.name, it.sortOrder) }
@@ -39,8 +41,15 @@ class CatalogRepositoryImpl(
     override suspend fun refresh(): RefreshResult = try {
         val categoryDtos = remote.fetchCategories()
         val itemDtos = remote.fetchMenuItems()
-        categoryDao.upsertAll(categoryDtos.map { CategoryEntity(it.id, it.name, it.sortOrder) })
-        menuItemDao.upsertAll(itemDtos.map { MenuItemEntity(it.id, it.categoryId, it.name, it.price, it.imageUrl, it.isAvailable) })
+        // Full replace, atomically: Room ends up with exactly the fetched rows — nothing stale
+        // (server-deleted rows are dropped) and nothing missing (no partial state if the process
+        // dies mid-sync).
+        transactionRunner.runInTransaction {
+            categoryDao.clear()
+            categoryDao.upsertAll(categoryDtos.map { CategoryEntity(it.id, it.name, it.sortOrder) })
+            menuItemDao.clear()
+            menuItemDao.upsertAll(itemDtos.map { MenuItemEntity(it.id, it.categoryId, it.name, it.price, it.imageUrl, it.isAvailable) })
+        }
         RefreshResult.Success
     } catch (e: CancellationException) {
         throw e

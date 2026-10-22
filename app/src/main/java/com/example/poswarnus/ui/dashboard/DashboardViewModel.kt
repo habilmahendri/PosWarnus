@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,6 +22,7 @@ data class DashboardUiState(
     val visibleItems: List<MenuItem> = emptyList(),
     val isOffline: Boolean = false,
     val loadError: Boolean = false,
+    val isLoading: Boolean = false,
 )
 
 @HiltViewModel
@@ -31,23 +31,44 @@ class DashboardViewModel @Inject constructor(
 ) : ViewModel() {
     private val selectedCategoryId = MutableStateFlow<String?>(null)
     private val searchQuery = MutableStateFlow("")
-    private val loadStatus = MutableStateFlow(LoadStatus())
 
-    private data class LoadStatus(val isOffline: Boolean = false, val loadError: Boolean = false)
+    // Set only by refresh()'s result — whether offline or a hard load error is shown is derived
+    // below, inside the same combine as the raw Room flows, so it recomputes the instant Room's
+    // (asynchronous) cache actually arrives instead of being frozen at refresh()-completion time.
+    private val refreshFailed = MutableStateFlow(false)
+    private val isLoading = MutableStateFlow(false)
+    private var refreshInProgress = false
+
+    // The raw Room cache and the refresh/loading status are combined in two steps (combine only
+    // has a typed overload up to 5 flows) so loadError/isOffline/isLoading are recomputed every
+    // time EITHER side changes — in particular, every time Room's cache flows emit, which is
+    // asynchronous and can arrive after refresh() has already reported a failure.
+    private data class CatalogSnapshot(val categories: List<Category>, val items: List<MenuItem>)
+    private data class FilterAndStatus(
+        val categoryId: String?,
+        val query: String,
+        val refreshFailed: Boolean,
+        val isLoading: Boolean,
+    )
 
     val uiState: StateFlow<DashboardUiState> = combine(
-        repository.categories, repository.menuItems, selectedCategoryId, searchQuery, loadStatus,
-    ) { categories, items, categoryId, query, status ->
+        combine(repository.categories, repository.menuItems, ::CatalogSnapshot),
+        combine(selectedCategoryId, searchQuery, refreshFailed, isLoading, ::FilterAndStatus),
+    ) { snapshot, filterAndStatus ->
+        val (categories, items) = snapshot
+        val (categoryId, query, failed, loading) = filterAndStatus
         val filtered = items
             .filter { categoryId == null || it.categoryId == categoryId }
             .filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
+        val hasCache = categories.isNotEmpty() || items.isNotEmpty()
         DashboardUiState(
             categories = categories,
             selectedCategoryId = categoryId,
             searchQuery = query,
             visibleItems = filtered,
-            isOffline = status.isOffline,
-            loadError = status.loadError,
+            isOffline = failed && hasCache,
+            loadError = failed && !hasCache,
+            isLoading = loading,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DashboardUiState())
 
@@ -59,13 +80,18 @@ class DashboardViewModel @Inject constructor(
     fun onSearchQueryChanged(query: String) { searchQuery.value = query }
 
     fun refresh() {
+        if (refreshInProgress) return
+        refreshInProgress = true
+        isLoading.value = true
         viewModelScope.launch {
-            when (repository.refresh()) {
-                is RefreshResult.Success -> loadStatus.update { it.copy(isOffline = false, loadError = false) }
-                is RefreshResult.Failure -> {
-                    val hasCache = uiState.value.visibleItems.isNotEmpty() || uiState.value.categories.isNotEmpty()
-                    loadStatus.update { LoadStatus(isOffline = hasCache, loadError = !hasCache) }
+            try {
+                when (repository.refresh()) {
+                    is RefreshResult.Success -> refreshFailed.value = false
+                    is RefreshResult.Failure -> refreshFailed.value = true
                 }
+            } finally {
+                isLoading.value = false
+                refreshInProgress = false
             }
         }
     }

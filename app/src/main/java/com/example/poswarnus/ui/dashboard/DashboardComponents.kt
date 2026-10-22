@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,14 +31,13 @@ import com.example.poswarnus.data.catalog.MenuItem
 import java.text.NumberFormat
 import java.util.Locale
 
-/** Formats a price as "Rp25.000" (Indonesian thousands grouping, no decimals). */
-fun formatRupiah(price: Double): String {
-    val formatter = NumberFormat.getNumberInstance(Locale("in", "ID")).apply {
-        maximumFractionDigits = 0
-        minimumFractionDigits = 0
-    }
-    return "Rp${formatter.format(price)}"
+private val rupiahFormat: NumberFormat = NumberFormat.getNumberInstance(Locale("in", "ID")).apply {
+    maximumFractionDigits = 0
+    minimumFractionDigits = 0
 }
+
+/** Formats a price as "Rp25.000" (Indonesian thousands grouping, no decimals). */
+fun formatRupiah(price: Double): String = "Rp${rupiahFormat.format(price)}"
 
 @Composable
 fun MenuItemCard(item: MenuItem, onClick: () -> Unit) {
@@ -49,7 +49,7 @@ fun MenuItemCard(item: MenuItem, onClick: () -> Unit) {
             .clickable(
                 enabled = isAvailable,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                indication = if (isAvailable) LocalIndication.current else null,
             ) { if (isAvailable) onClick() },
         shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -98,11 +98,11 @@ fun CategoryChip(category: Category?, isSelected: Boolean, onClick: () -> Unit) 
     val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
     Surface(
+        onClick = onClick,
         shape = RoundedCornerShape(6.dp),
         color = containerColor,
         contentColor = contentColor,
         border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier.clickable(onClick = onClick),
     ) {
         Text(
             text = label,

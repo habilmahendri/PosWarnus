@@ -3,8 +3,10 @@ package com.example.poswarnus.di
 import android.content.Context
 import androidx.room.Room
 import com.example.poswarnus.data.local.AppDatabase
+import com.example.poswarnus.data.local.CatalogTransactionRunner
 import com.example.poswarnus.data.local.CategoryDao
 import com.example.poswarnus.data.local.MenuItemDao
+import com.example.poswarnus.data.local.RoomCatalogTransactionRunner
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,4 +27,9 @@ object DatabaseModule {
 
     @Provides
     fun provideMenuItemDao(db: AppDatabase): MenuItemDao = db.menuItemDao()
+
+    @Provides
+    @Singleton
+    fun provideCatalogTransactionRunner(db: AppDatabase): CatalogTransactionRunner =
+        RoomCatalogTransactionRunner(db)
 }

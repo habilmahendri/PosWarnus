@@ -5,6 +5,7 @@ import com.example.poswarnus.data.catalog.Category
 import com.example.poswarnus.data.catalog.CatalogRepository
 import com.example.poswarnus.data.catalog.MenuItem
 import com.example.poswarnus.data.catalog.RefreshResult
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -25,7 +26,16 @@ private class FakeCatalogRepository(
     val menuItemsFlow = MutableStateFlow<List<MenuItem>>(emptyList())
     override val categories: Flow<List<Category>> = categoriesFlow
     override val menuItems: Flow<List<MenuItem>> = menuItemsFlow
-    override suspend fun refresh(): RefreshResult = refreshResult
+    var refreshCallCount = 0
+        private set
+    /** When set, refresh() suspends here until the test completes it — lets a test observe an in-flight refresh. */
+    var refreshGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun refresh(): RefreshResult {
+        refreshCallCount++
+        refreshGate?.await()
+        return refreshResult
+    }
 }
 
 private val makanan = Category("a", "Makanan", 1)
@@ -105,5 +115,46 @@ class DashboardViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(true, viewModel.uiState.value.loadError)
+    }
+
+    @Test
+    fun `loadError flips to isOffline once Room's cache arrives asynchronously, without another refresh`() = runTest {
+        // Simulates a fast network failure (e.g. airplane mode) that completes before Room's
+        // Flow has emitted its first (asynchronous) read from disk.
+        val repository = FakeCatalogRepository(refreshResult = RefreshResult.Failure("network down"))
+        val viewModel = viewModel(repository)
+
+        assertEquals(true, viewModel.uiState.value.loadError)
+        assertEquals(false, viewModel.uiState.value.isOffline)
+
+        // Room's cache arrives late — no refresh() is called again.
+        repository.menuItemsFlow.value = listOf(nasiGoreng)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.loadError)
+        assertEquals(true, viewModel.uiState.value.isOffline)
+        assertEquals(listOf(nasiGoreng), viewModel.uiState.value.visibleItems)
+    }
+
+    @Test
+    fun `isLoading is true only while a refresh is in flight and a concurrent refresh is a no-op`() = runTest {
+        val repository = FakeCatalogRepository()
+        val gate = CompletableDeferred<Unit>()
+        repository.refreshGate = gate
+        // init() kicks off the first refresh, which now suspends on the gate mid-flight.
+        val viewModel = viewModel(repository)
+
+        assertEquals(true, viewModel.uiState.value.isLoading)
+        assertEquals(1, repository.refreshCallCount)
+
+        // A second refresh while one is in flight must not launch another repository.refresh().
+        viewModel.refresh()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, repository.refreshCallCount)
+        assertEquals(true, viewModel.uiState.value.isLoading)
+
+        gate.complete(Unit)
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(false, viewModel.uiState.value.isLoading)
     }
 }

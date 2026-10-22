@@ -2,6 +2,7 @@ package com.example.poswarnus.di
 
 import com.example.poswarnus.data.catalog.CatalogRepository
 import com.example.poswarnus.data.catalog.CatalogRepositoryImpl
+import com.example.poswarnus.data.local.CatalogTransactionRunner
 import com.example.poswarnus.data.local.CategoryDao
 import com.example.poswarnus.data.local.MenuItemDao
 import com.example.poswarnus.data.remote.CatalogRemoteDataSource
@@ -20,5 +21,6 @@ object CatalogModule {
         categoryDao: CategoryDao,
         menuItemDao: MenuItemDao,
         remote: CatalogRemoteDataSource,
-    ): CatalogRepository = CatalogRepositoryImpl(categoryDao, menuItemDao, remote)
+        transactionRunner: CatalogTransactionRunner,
+    ): CatalogRepository = CatalogRepositoryImpl(categoryDao, menuItemDao, remote, transactionRunner)
 }

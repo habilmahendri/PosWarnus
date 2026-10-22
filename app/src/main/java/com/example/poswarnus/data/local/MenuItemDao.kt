@@ -12,4 +12,7 @@ interface MenuItemDao {
 
     @Upsert
     suspend fun upsertAll(items: List<MenuItemEntity>)
+
+    @Query("DELETE FROM menu_items")
+    suspend fun clear()
 }

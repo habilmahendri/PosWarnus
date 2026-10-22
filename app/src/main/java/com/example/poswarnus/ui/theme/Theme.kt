@@ -2,7 +2,6 @@ package com.example.poswarnus.ui.theme
 
 import android.app.Activity
 import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -54,7 +53,11 @@ val PosShapes = Shapes(
 
 @Composable
 fun POSWarNusTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    // Forced to light: no dark variant has been designed yet (docs/design-reference.md has no
+    // dark tokens), so following the system's dark-mode setting here would silently fall back to
+    // Compose's generic purple darkColorScheme() — off-brand and, combined with the Android
+    // window background, unreadable. Revisit once a real dark variant is designed.
+    darkTheme: Boolean = false,
     // Dynamic color is disabled: the brand color scheme must never be overridden by
     // Android 12+ wallpaper-based dynamic color.
     dynamicColor: Boolean = false,

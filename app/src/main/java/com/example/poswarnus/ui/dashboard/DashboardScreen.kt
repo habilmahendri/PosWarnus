@@ -1,20 +1,25 @@
 package com.example.poswarnus.ui.dashboard
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -80,7 +85,11 @@ private fun CatalogPane(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxHeight()) {
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .windowInsetsPadding(WindowInsets.safeDrawing),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -124,11 +133,14 @@ private fun CatalogPane(
 
         if (state.isOffline) {
             Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .clickable(onClick = onRefresh),
                 color = MaterialTheme.colorScheme.surfaceVariant,
             ) {
                 Text(
-                    text = "Offline — menampilkan data tersimpan",
+                    text = "Offline — menampilkan data tersimpan. Ketuk untuk mencoba lagi.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                 )
@@ -143,10 +155,19 @@ private fun CatalogPane(
                             text = "Tidak bisa memuat menu, periksa koneksi",
                             style = MaterialTheme.typography.bodyLarge,
                         )
-                        Button(onClick = onRefresh, modifier = Modifier.padding(top = 12.dp)) {
+                        Button(
+                            onClick = onRefresh,
+                            enabled = !state.isLoading,
+                            modifier = Modifier.padding(top = 12.dp),
+                        ) {
                             Text("Coba lagi")
                         }
                     }
+                }
+            }
+            state.isLoading && state.categories.isEmpty() && state.visibleItems.isEmpty() -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
             }
             state.visibleItems.isEmpty() -> {
