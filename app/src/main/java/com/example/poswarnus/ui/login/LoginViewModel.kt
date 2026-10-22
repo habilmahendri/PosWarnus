@@ -5,12 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.poswarnus.data.auth.AuthRepository
 import com.example.poswarnus.data.auth.AuthResult
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,12 +32,12 @@ class LoginViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
-    private val _events = MutableSharedFlow<LoginEvent>()
-    val events: SharedFlow<LoginEvent> = _events.asSharedFlow()
+    private val _events = Channel<LoginEvent>(Channel.BUFFERED)
+    val events: Flow<LoginEvent> = _events.receiveAsFlow()
 
     init {
         viewModelScope.launch {
-            if (authRepository.isLoggedIn()) _events.emit(LoginEvent.NavigateToDashboard)
+            if (authRepository.isLoggedIn()) _events.send(LoginEvent.NavigateToDashboard)
         }
     }
 
@@ -47,16 +47,17 @@ class LoginViewModel @Inject constructor(
     fun onLoginClicked() {
         val state = _uiState.value
         if (state.isLoading) return
-        if (state.email.isBlank() || state.password.isBlank()) {
+        val email = state.email.trim()
+        if (email.isBlank() || state.password.isBlank()) {
             _uiState.value = state.copy(errorMessage = "Email and password are required")
             return
         }
         _uiState.value = state.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
-            when (val result = authRepository.login(state.email, state.password)) {
+            when (val result = authRepository.login(email, state.password)) {
                 is AuthResult.Success -> {
                     _uiState.value = _uiState.value.copy(isLoading = false)
-                    _events.emit(LoginEvent.NavigateToDashboard)
+                    _events.send(LoginEvent.NavigateToDashboard)
                 }
                 is AuthResult.Failure -> {
                     _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = result.message)

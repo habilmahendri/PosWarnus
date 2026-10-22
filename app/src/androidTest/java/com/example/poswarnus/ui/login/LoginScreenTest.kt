@@ -6,6 +6,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.example.poswarnus.data.auth.AuthRepository
 import com.example.poswarnus.data.auth.AuthResult
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -61,6 +62,6 @@ class LoginScreenTest {
         composeTestRule.onNodeWithText("Login").performClick()
         composeTestRule.waitForIdle()
 
-        assert(navigated)
+        assertTrue(navigated)
     }
 }

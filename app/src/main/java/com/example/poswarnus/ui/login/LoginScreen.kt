@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
@@ -14,6 +15,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -34,8 +37,21 @@ fun LoginScreen(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        OutlinedTextField(value = state.email, onValueChange = viewModel::onEmailChanged, label = { Text("Email") })
-        OutlinedTextField(value = state.password, onValueChange = viewModel::onPasswordChanged, label = { Text("Password") })
+        OutlinedTextField(
+            value = state.email,
+            onValueChange = viewModel::onEmailChanged,
+            label = { Text("Email") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+        )
+        OutlinedTextField(
+            value = state.password,
+            onValueChange = viewModel::onPasswordChanged,
+            label = { Text("Password") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        )
         state.errorMessage?.let { Text(it) }
         Button(onClick = viewModel::onLoginClicked, enabled = !state.isLoading) {
             if (state.isLoading) CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp)) else Text("Login")

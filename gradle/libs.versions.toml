@@ -18,6 +18,7 @@ hiltNavigationCompose = "1.2.0"
 datastorePreferences = "1.1.7"
 kotlinxCoroutinesTest = "1.10.2"
 turbine = "1.2.1"
+ktorClientMock = "3.2.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -46,6 +47,7 @@ androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navig
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktorClientMock" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
