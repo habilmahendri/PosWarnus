@@ -76,8 +76,11 @@ class LoginViewModelTest {
         viewModel.onEmailChanged("cashier@warnus.test")
         viewModel.onPasswordChanged("wrong-password")
 
-        viewModel.onLoginClicked()
-        dispatcher.scheduler.advanceUntilIdle()
+        viewModel.events.test {
+            viewModel.onLoginClicked()
+            dispatcher.scheduler.advanceUntilIdle()
+            expectNoEvents()
+        }
 
         assertEquals("Invalid login credentials", viewModel.uiState.value.errorMessage)
         assertEquals(false, viewModel.uiState.value.isLoading)
@@ -112,7 +115,11 @@ class LoginViewModelTest {
     fun `init does not emit NavigateToDashboard when no session is persisted`() = runTest {
         val repository = FakeAuthRepository(isLoggedInResult = false)
         val viewModel = LoginViewModel(repository)
-        dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            dispatcher.scheduler.advanceUntilIdle()
+            expectNoEvents()
+        }
         assertNull(viewModel.uiState.value.errorMessage)
     }
 }
