@@ -16,9 +16,15 @@ import androidx.compose.ui.unit.sp
 private val PosFontFamily = FontFamily.SansSerif
 
 // Sizes mapped from docs/design-reference.md §1 "Typography" onto the closest Material3
-// Typography slots. Sizes without a natural M3 slot (e.g. the 44sp grand total) are left
-// for call sites to build as ad-hoc TextStyles, per the brief.
+// Typography slots. All 13 documented size/weight combos now have a dedicated M3 slot.
 val Typography = Typography(
+    displayLarge = TextStyle( // grand total on payment screen, 44sp/700
+        fontFamily = PosFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 44.sp,
+        lineHeight = 52.sp,
+        letterSpacing = 0.sp
+    ),
     displaySmall = TextStyle( // cart footer total style, 32sp/700
         fontFamily = PosFontFamily,
         fontWeight = FontWeight.Bold,
@@ -26,7 +32,21 @@ val Typography = Typography(
         lineHeight = 40.sp,
         letterSpacing = 0.sp
     ),
-    headlineSmall = TextStyle( // login "Masuk" heading / success heading, ~24-28sp/700
+    headlineLarge = TextStyle( // login "Masuk" heading, 28sp/700
+        fontFamily = PosFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        lineHeight = 34.sp,
+        letterSpacing = 0.sp
+    ),
+    headlineMedium = TextStyle( // detail dialog line total, 26sp/700
+        fontFamily = PosFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 26.sp,
+        lineHeight = 32.sp,
+        letterSpacing = 0.sp
+    ),
+    headlineSmall = TextStyle( // success heading, 24sp/700
         fontFamily = PosFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
