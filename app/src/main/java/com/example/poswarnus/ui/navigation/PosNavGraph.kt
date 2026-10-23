@@ -1,6 +1,7 @@
 package com.example.poswarnus.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -32,12 +33,19 @@ fun PosNavGraph(navController: NavHostController = rememberNavController()) {
                 }
             })
         }
-        composable(PosDestinations.DASHBOARD) {
-            DashboardScreen(onLoggedOut = {
-                navController.navigate(PosDestinations.LOGIN) {
-                    popUpTo(PosDestinations.DASHBOARD) { inclusive = true }
-                }
-            })
+        composable(PosDestinations.DASHBOARD) { backStackEntry ->
+            DashboardScreen(
+                onLoggedOut = {
+                    navController.navigate(PosDestinations.LOGIN) {
+                        popUpTo(PosDestinations.DASHBOARD) { inclusive = true }
+                    }
+                },
+                // Phase 4 wires payment; "Bayar" is a no-op until then.
+                onCheckout = { },
+                // Owned by this entry, so popping the dashboard on logout destroys it along with
+                // any open dialog; the shared CartStore is cleared by LogoutViewModel.
+                cartViewModel = hiltViewModel(viewModelStoreOwner = backStackEntry),
+            )
         }
     }
 }
