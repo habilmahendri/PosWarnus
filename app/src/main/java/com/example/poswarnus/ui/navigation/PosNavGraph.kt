@@ -13,12 +13,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.poswarnus.ui.dashboard.DashboardScreen
 import com.example.poswarnus.ui.login.LoginScreen
+import com.example.poswarnus.ui.settings.SettingsScreen
 import com.example.poswarnus.ui.splash.SplashScreen
 
 object PosDestinations {
     const val SPLASH = "splash"
     const val LOGIN = "login"
     const val DASHBOARD = "dashboard"
+    const val SETTINGS = "settings"
 }
 
 @Composable
@@ -52,11 +54,15 @@ fun PosNavGraph(navController: NavHostController = rememberNavController()) {
                         popUpTo(PosDestinations.DASHBOARD) { inclusive = true }
                     }
                 },
+                onOpenSettings = { navController.navigate(PosDestinations.SETTINGS) },
                 // Owned by this entry, so popping the dashboard on logout destroys them along with
                 // any open dialog; the shared CartStore is cleared by LogoutViewModel.
                 cartViewModel = hiltViewModel(viewModelStoreOwner = backStackEntry),
                 paymentViewModel = hiltViewModel(viewModelStoreOwner = backStackEntry),
             )
+        }
+        composable(PosDestinations.SETTINGS) {
+            SettingsScreen(onBack = { navController.popBackStack() })
         }
     }
 }

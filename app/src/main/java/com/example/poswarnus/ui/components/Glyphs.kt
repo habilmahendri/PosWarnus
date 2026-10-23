@@ -218,3 +218,26 @@ fun CashGlyph(tint: Color, modifier: Modifier = Modifier) {
         drawCircle(tint, radius = h * 0.1f, center = Offset(w * 0.5f, h * 0.5f), style = Stroke(width = stroke))
     }
 }
+
+/** A gear: ring with eight teeth around a hollow hub. */
+@Composable
+fun SettingsGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val stroke = size.minDimension * 0.09f
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val body = size.minDimension * 0.26f
+        drawCircle(tint, radius = body, center = center, style = Stroke(width = stroke))
+        drawCircle(tint, radius = size.minDimension * 0.1f, center = center, style = Stroke(width = stroke))
+        for (i in 0 until 8) {
+            val angle = Math.toRadians(i * 45.0)
+            val dir = Offset(Math.cos(angle).toFloat(), Math.sin(angle).toFloat())
+            drawLine(
+                color = tint,
+                start = center + dir * (body + stroke * 0.4f),
+                end = center + dir * (size.minDimension * 0.42f),
+                strokeWidth = stroke * 1.4f,
+                cap = StrokeCap.Round,
+            )
+        }
+    }
+}

@@ -37,6 +37,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -59,6 +60,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -77,6 +79,7 @@ import com.example.poswarnus.ui.payment.PaymentViewModel
 import com.example.poswarnus.ui.components.BrandMark
 import com.example.poswarnus.ui.components.CloseGlyph
 import com.example.poswarnus.ui.components.SearchGlyph
+import com.example.poswarnus.ui.components.SettingsGlyph
 import com.example.poswarnus.ui.theme.AccentOrange
 import com.example.poswarnus.ui.theme.BackgroundCream
 import com.example.poswarnus.ui.theme.LineDefault
@@ -117,6 +120,7 @@ private val GridBottomPadding = 16.dp
 @Composable
 fun DashboardScreen(
     onLoggedOut: () -> Unit,
+    onOpenSettings: () -> Unit,
     dashboardViewModel: DashboardViewModel = hiltViewModel(),
     logoutViewModel: LogoutViewModel = hiltViewModel(),
     cartViewModel: CartViewModel = hiltViewModel(),
@@ -168,6 +172,7 @@ fun DashboardScreen(
                 onSearchQueryChanged = dashboardViewModel::onSearchQueryChanged,
                 onRefresh = dashboardViewModel::refresh,
                 onLogout = { logoutViewModel.logout(onLoggedOut) },
+                onOpenSettings = onOpenSettings,
                 modifier = Modifier.weight(1f),
             )
             if (isTablet) {
@@ -283,6 +288,7 @@ private fun CatalogHeader(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onLogout: () -> Unit,
+    onOpenSettings: () -> Unit,
     syncPill: SyncPill,
 ) {
     @Composable
@@ -302,6 +308,16 @@ private fun CatalogHeader(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+    }
+
+    @Composable
+    fun SettingsButton() {
+        IconButton(
+            onClick = onOpenSettings,
+            modifier = Modifier.size(48.dp).semantics { contentDescription = "Pengaturan" },
+        ) {
+            SettingsGlyph(tint = TextPrimary, modifier = Modifier.size(24.dp))
         }
     }
 
@@ -334,6 +350,7 @@ private fun CatalogHeader(
                 ) {
                     Brand(modifier = Modifier.weight(1f))
                     SyncStatusPill(pill = syncPill)
+                    SettingsButton()
                     LogoutButton()
                 }
                 CatalogSearchField(
@@ -361,6 +378,7 @@ private fun CatalogHeader(
                     onValueChange = onSearchQueryChange,
                     modifier = Modifier.width(320.dp),
                 )
+                SettingsButton()
                 LogoutButton()
             }
         }
@@ -378,6 +396,7 @@ private fun CatalogPane(
     onSearchQueryChanged: (String) -> Unit,
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -395,6 +414,7 @@ private fun CatalogPane(
                 searchQuery = state.searchQuery,
                 onSearchQueryChange = onSearchQueryChanged,
                 onLogout = onLogout,
+                onOpenSettings = onOpenSettings,
                 syncPill = state.syncPill,
             )
         }
