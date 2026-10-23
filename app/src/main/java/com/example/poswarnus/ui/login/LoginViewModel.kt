@@ -51,7 +51,7 @@ class LoginViewModel @Inject constructor(
         if (state.isLoading) return
         val email = state.email.trim()
         if (email.isBlank() || state.password.isBlank()) {
-            _uiState.value = state.copy(errorMessage = "Email and password are required")
+            _uiState.value = state.copy(errorMessage = "Email dan kata sandi wajib diisi.")
             return
         }
         _uiState.value = state.copy(isLoading = true, errorMessage = null)

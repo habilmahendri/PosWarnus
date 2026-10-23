@@ -55,11 +55,11 @@ class AuthRepositoryImpl(
     private fun mapLoginError(e: Exception): String = when {
         // Supabase's own rest exceptions (and any RestException in general) embed the request
         // URL, headers and HTTP method in their message, which is not appropriate to show.
-        e is AuthRestException -> "Invalid email or password"
-        e is RestException -> "Login failed, please try again"
-        e is HttpRequestException -> "Can't reach server, check your connection"
-        e is HttpRequestTimeoutException -> "Can't reach server, check your connection"
-        e is java.io.IOException -> "Can't reach server, check your connection"
-        else -> "Login failed, please try again"
+        e is AuthRestException -> "Email atau kata sandi salah. Periksa lalu coba lagi."
+        e is RestException -> "Gagal masuk. Silakan coba lagi."
+        e is HttpRequestException -> "Tidak bisa terhubung. Periksa koneksi lalu coba lagi."
+        e is HttpRequestTimeoutException -> "Tidak bisa terhubung. Periksa koneksi lalu coba lagi."
+        e is java.io.IOException -> "Tidak bisa terhubung. Periksa koneksi lalu coba lagi."
+        else -> "Gagal masuk. Silakan coba lagi."
     }
 }

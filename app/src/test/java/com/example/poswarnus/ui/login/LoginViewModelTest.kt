@@ -58,7 +58,7 @@ class LoginViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(0, repository.loginCallCount)
-        assertEquals("Email and password are required", viewModel.uiState.value.errorMessage)
+        assertEquals("Email dan kata sandi wajib diisi.", viewModel.uiState.value.errorMessage)
     }
 
     @Test
