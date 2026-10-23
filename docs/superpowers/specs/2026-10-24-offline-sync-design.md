@@ -143,6 +143,7 @@ Notes:
 - `check (not is_training)` is a server-side guard for the PRD 4.13 rule that training sales never reach Supabase. The app never sends the field; the column exists so Phase 6 and any admin tooling can rely on it.
 - Table privileges for `authenticated` are deliberately not revoked: `INSERT ... ON CONFLICT` may need column-level SELECT on the conflict target, and RLS (no SELECT policy) already hides every row from cashiers. The verification step in section 8 checks both "re-submit is a no-op" and "authenticated cannot read".
 - The SQL is NOT idempotent (see header comment) and only the owner applies it to the live project.
+- **Correction after the live run (2026-10-24):** the assumption above that `INSERT ... ON CONFLICT DO NOTHING` needs only an INSERT policy is wrong. Postgres also applies SELECT policies to an INSERT with an ON CONFLICT clause, so with no SELECT policy every upload failed with 42501. The function is therefore `security definer` (`set search_path = public`) and checks `cashier_id = auth.uid()` itself, which keeps cashiers write-only; see `supabase/migrations/20261024100000_fix_submit_transaction_security_definer.sql` (applied with the owner's approval). The "security invoker" wording elsewhere in this spec describes the first version.
 
 ### 4.2 Room v5 (`MIGRATION_4_5`, schema `5.json` exported)
 

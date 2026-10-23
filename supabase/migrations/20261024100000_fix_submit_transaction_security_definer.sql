@@ -1,7 +1,7 @@
 -- Phase 5 follow-up: make submit_transaction work for cashiers who have no SELECT policy.
 --
--- PROPOSED, NOT APPLIED. It changes the security model of the function from `security invoker` to
--- `security definer`, so it needs the project owner's explicit decision before it is applied.
+-- APPLIED to the live project on 2026-10-24 with the project owner's explicit approval. It changes the
+-- security model of the function from `security invoker` to `security definer`.
 --
 -- Why: 20261024000000_add_transactions_sync.sql was applied to the live project on 2026-10-24 and
 -- every upload then failed with 42501 "new row violates row-level security policy for table
