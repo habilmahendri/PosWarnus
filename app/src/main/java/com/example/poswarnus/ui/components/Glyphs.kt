@@ -118,3 +118,53 @@ fun BrandMark(modifier: Modifier = Modifier, background: Color, foreground: Colo
         )
     }
 }
+
+@Composable
+fun MinusGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val stroke = size.minDimension * 0.1f
+        val pad = size.minDimension * 0.2f
+        drawLine(tint, Offset(pad, size.height / 2f), Offset(size.width - pad, size.height / 2f), stroke, StrokeCap.Round)
+    }
+}
+
+@Composable
+fun PlusGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val stroke = size.minDimension * 0.1f
+        val pad = size.minDimension * 0.2f
+        drawLine(tint, Offset(pad, size.height / 2f), Offset(size.width - pad, size.height / 2f), stroke, StrokeCap.Round)
+        drawLine(tint, Offset(size.width / 2f, pad), Offset(size.width / 2f, size.height - pad), stroke, StrokeCap.Round)
+    }
+}
+
+@Composable
+fun CheckGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val stroke = size.minDimension * 0.125f
+        val w = size.width
+        val h = size.height
+        drawLine(tint, Offset(w * 0.2f, h * 0.52f), Offset(w * 0.4f, h * 0.71f), stroke, StrokeCap.Round)
+        drawLine(tint, Offset(w * 0.4f, h * 0.71f), Offset(w * 0.79f, h * 0.31f), stroke, StrokeCap.Round)
+    }
+}
+
+@Composable
+fun TrashGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val stroke = size.minDimension * 0.08f
+        val w = size.width
+        val h = size.height
+        drawLine(tint, Offset(w * 0.16f, h * 0.26f), Offset(w * 0.84f, h * 0.26f), stroke, StrokeCap.Round)
+        drawLine(tint, Offset(w * 0.38f, h * 0.14f), Offset(w * 0.62f, h * 0.14f), stroke, StrokeCap.Round)
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(w * 0.24f, h * 0.26f),
+            size = androidx.compose.ui.geometry.Size(w * 0.52f, h * 0.6f),
+            cornerRadius = CornerRadius(w * 0.06f),
+            style = Stroke(width = stroke, cap = StrokeCap.Round),
+        )
+        drawLine(tint, Offset(w * 0.42f, h * 0.42f), Offset(w * 0.42f, h * 0.7f), stroke, StrokeCap.Round)
+        drawLine(tint, Offset(w * 0.58f, h * 0.42f), Offset(w * 0.58f, h * 0.7f), stroke, StrokeCap.Round)
+    }
+}

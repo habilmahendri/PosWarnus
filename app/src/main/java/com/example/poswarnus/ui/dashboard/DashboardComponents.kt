@@ -9,8 +9,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Card
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.material3.CardDefaults
@@ -46,24 +53,33 @@ private val rupiahFormat: NumberFormat = NumberFormat.getNumberInstance(Locale("
 /** Formats a price as "Rp25.000" (Indonesian thousands grouping, no decimals). */
 fun formatRupiah(price: Double): String = "Rp${rupiahFormat.format(price)}"
 
+fun formatRupiah(amount: Long): String = "Rp${rupiahFormat.format(amount)}"
+
 /**
  * Menu card — docs/design-reference.md "Dashboard" § catalog grid: white card, 1px line border,
  * 10dp radius, 16:9 photo, 2-line name with reserved height, tabular price. An unavailable item
  * only dims its photo and shows a "Habis" tag (not the whole card), per the mockup.
+ * With [inCartQuantity] > 0 the card shows the "in cart" state: a 28dp accent badge with the
+ * quantity at the photo's top-right, and an accent border plus a 1dp accent ring.
  */
 @Composable
-fun MenuItemCard(item: MenuItem, onClick: () -> Unit) {
+fun MenuItemCard(item: MenuItem, inCartQuantity: Int = 0, onClick: () -> Unit) {
     val isAvailable = item.isAvailable
+    val inCart = inCartQuantity > 0
+    val cardShape = RoundedCornerShape(10.dp)
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            // The 1dp ring slot is always reserved so toggling the in-cart state doesn't shift the grid.
+            .border(1.dp, if (inCart) AccentOrange else Color.Transparent, RoundedCornerShape(11.dp))
+            .padding(1.dp)
             .clickable(
                 enabled = isAvailable,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = if (isAvailable) LocalIndication.current else null,
             ) { if (isAvailable) onClick() },
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, LineDefault),
+        shape = cardShape,
+        border = BorderStroke(1.dp, if (inCart) AccentOrange else LineDefault),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
         elevation = CardDefaults.cardElevation(0.dp),
     ) {
@@ -95,6 +111,26 @@ fun MenuItemCard(item: MenuItem, onClick: () -> Unit) {
                             style = MaterialTheme.typography.labelLarge,
                             color = ErrorRed,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        )
+                    }
+                }
+                if (inCart) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .size(28.dp)
+                            .background(AccentOrange, CircleShape)
+                            .semantics { contentDescription = "$inCartQuantity di pesanan" },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = inCartQuantity.toString(),
+                            color = SurfaceWhite,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            style = TextStyle(fontFeatureSettings = "tnum"),
+                            maxLines = 1,
                         )
                     }
                 }

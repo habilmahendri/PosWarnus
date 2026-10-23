@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -32,31 +34,42 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.poswarnus.data.auth.AuthRepository
+import com.example.poswarnus.data.catalog.MenuItem
+import com.example.poswarnus.ui.cart.CartPanel
+import com.example.poswarnus.ui.cart.CartStore
+import com.example.poswarnus.ui.cart.CartViewModel
+import com.example.poswarnus.ui.cart.MenuDetailDialog
 import com.example.poswarnus.ui.components.BrandMark
 import com.example.poswarnus.ui.components.CloseGlyph
-import com.example.poswarnus.ui.components.EmptyCartGlyph
 import com.example.poswarnus.ui.components.SearchGlyph
 import com.example.poswarnus.ui.theme.AccentOrange
 import com.example.poswarnus.ui.theme.BackgroundCream
@@ -70,10 +83,15 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class LogoutViewModel @Inject constructor(private val authRepository: AuthRepository) : ViewModel() {
+class LogoutViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val cartStore: CartStore,
+) : ViewModel() {
     fun logout(onLoggedOut: () -> Unit) {
         viewModelScope.launch {
             authRepository.logout()
+            // One cashier's order must never leak into the next session.
+            cartStore.clear()
             onLoggedOut()
         }
     }
@@ -83,19 +101,56 @@ class LogoutViewModel @Inject constructor(private val authRepository: AuthReposi
 // not a proportion of the window — only the catalog pane stretches with available space.
 private val CartPaneWidth = 440.dp
 private val TabletBreakpoint = 840.dp
+// Height of the phone order bar's content (excluding the navigation-bar inset it also pads).
+private val PhoneCartBarHeight = 72.dp
+private val GridBottomPadding = 16.dp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onLoggedOut: () -> Unit,
+    onCheckout: () -> Unit = {},
     dashboardViewModel: DashboardViewModel = hiltViewModel(),
     logoutViewModel: LogoutViewModel = hiltViewModel(),
+    cartViewModel: CartViewModel = hiltViewModel(),
 ) {
     val state by dashboardViewModel.uiState.collectAsState()
+    val cartState by cartViewModel.uiState.collectAsState()
+    val hasLines = cartState.lines.isNotEmpty()
+    var showCartSheet by rememberSaveable { mutableStateOf(false) }
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BackgroundCream)) {
         val isTablet = maxWidth >= TabletBreakpoint
+        val windowHeight = maxHeight
+        val showPhoneBar = !isTablet && hasLines
+
+        // The sheet only exists on phone width with something in it; reset the flag so it doesn't
+        // pop back open when the cart refills or the window narrows again.
+        LaunchedEffect(hasLines, isTablet) {
+            if (!hasLines || isTablet) showCartSheet = false
+        }
+
+        val cartPanel: @Composable (Modifier) -> Unit = { panelModifier ->
+            CartPanel(
+                state = cartState,
+                onLineClick = cartViewModel::onLineClicked,
+                onIncrement = cartViewModel::incrementLine,
+                onDecrement = cartViewModel::decrementLine,
+                onRemove = cartViewModel::removeLine,
+                onRequestClear = cartViewModel::requestClearAll,
+                onConfirmClear = cartViewModel::confirmClearAll,
+                onCancelClear = cartViewModel::cancelClearAll,
+                onCheckout = onCheckout,
+                modifier = panelModifier,
+            )
+        }
+
         Row(modifier = Modifier.fillMaxSize()) {
             CatalogPane(
                 state = state,
+                inCartQuantities = cartState.quantityByMenuItem,
+                onMenuItemClick = cartViewModel::onMenuItemClicked,
+                gridBottomPadding = if (showPhoneBar) GridBottomPadding + PhoneCartBarHeight else GridBottomPadding,
                 onCategorySelected = dashboardViewModel::onCategorySelected,
                 onSearchQueryChanged = dashboardViewModel::onSearchQueryChanged,
                 onRefresh = dashboardViewModel::refresh,
@@ -103,7 +158,96 @@ fun DashboardScreen(
                 modifier = Modifier.weight(1f),
             )
             if (isTablet) {
-                CartPane(modifier = Modifier.width(CartPaneWidth).fillMaxHeight())
+                VerticalDivider(color = LineDefault, thickness = 1.dp)
+                cartPanel(
+                    Modifier
+                        .width(CartPaneWidth)
+                        .fillMaxHeight()
+                        .background(SurfaceWhite)
+                        .windowInsetsPadding(
+                            WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.End),
+                        ),
+                )
+            }
+        }
+
+        if (showPhoneBar) {
+            PhoneCartBar(
+                totalQuantity = cartState.totalQuantity,
+                subtotal = cartState.subtotal,
+                onOpen = { showCartSheet = true },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+
+        if (showCartSheet && showPhoneBar) {
+            ModalBottomSheet(
+                onDismissRequest = { showCartSheet = false },
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                containerColor = SurfaceWhite,
+            ) {
+                // Bounded so the list scrolls inside the sheet; the panel wraps shorter carts.
+                cartPanel(Modifier.fillMaxWidth().heightIn(max = windowHeight * 0.85f))
+            }
+        }
+
+        // Composed after the sheet in the same scope so its window is created above the sheet's,
+        // including when both are recreated after a rotation.
+        cartState.dialog?.let { dialog ->
+            MenuDetailDialog(
+                state = dialog,
+                onToggle = cartViewModel::toggleOption,
+                onIncrement = cartViewModel::incrementQuantity,
+                onDecrement = cartViewModel::decrementQuantity,
+                onConfirm = cartViewModel::confirmDialog,
+                onDismiss = cartViewModel::dismissDialog,
+            )
+        }
+    }
+}
+
+/**
+ * Phone-width order bar (spec 5.3): "{N} item · {Rp total}" with a "Lihat Pesanan" button that
+ * opens the cart sheet. Only shown while the cart has lines.
+ */
+@Composable
+private fun PhoneCartBar(
+    totalQuantity: Int,
+    subtotal: Long,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(SurfaceWhite)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)),
+    ) {
+        HorizontalDivider(color = LineDefault, thickness = 1.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(PhoneCartBarHeight)
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "$totalQuantity item · ${formatRupiah(subtotal)}",
+                style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Button(
+                onClick = onOpen,
+                shape = RoundedCornerShape(6.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AccentOrange, contentColor = SurfaceWhite),
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
+                Text("Lihat Pesanan", fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -112,6 +256,9 @@ fun DashboardScreen(
 @Composable
 private fun CatalogPane(
     state: DashboardUiState,
+    inCartQuantities: Map<String, Int>,
+    onMenuItemClick: (MenuItem) -> Unit,
+    gridBottomPadding: Dp,
     onCategorySelected: (String?) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     onRefresh: () -> Unit,
@@ -258,12 +405,16 @@ private fun CatalogPane(
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 160.dp),
                     modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp),
+                    contentPadding = PaddingValues(top = 4.dp, bottom = gridBottomPadding),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(state.visibleItems, key = { it.id }) { item ->
-                        MenuItemCard(item = item, onClick = { })
+                        MenuItemCard(
+                            item = item,
+                            inCartQuantity = inCartQuantities[item.id] ?: 0,
+                            onClick = { onMenuItemClick(item) },
+                        )
                     }
                 }
             }
@@ -328,45 +479,6 @@ private fun CatalogSearchField(
                 contentAlignment = Alignment.Center,
             ) {
                 CloseGlyph(tint = TextSecondary, modifier = Modifier.size(18.dp))
-            }
-        }
-    }
-}
-
-/**
- * Right-hand order panel. No cart state exists yet in this phase, so this renders the mockup's
- * documented empty-cart scene verbatim (project/Dashboard-Empty.dc.html in the reference
- * artifact) rather than an ad-hoc placeholder.
- */
-@Composable
-private fun CartPane(modifier: Modifier = Modifier) {
-    Row(modifier = modifier) {
-        VerticalDivider(color = LineDefault, thickness = 1.dp)
-        Column(modifier = Modifier.fillMaxHeight().weight(1f).background(SurfaceWhite)) {
-            Box(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Text(text = "Pesanan", style = MaterialTheme.typography.titleMedium)
-            }
-            HorizontalDivider(color = LineDefault, thickness = 1.dp)
-            Box(modifier = Modifier.fillMaxSize().padding(horizontal = 40.dp), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    EmptyCartGlyph(tint = TextSecondary, modifier = Modifier.size(44.dp))
-                    Text(
-                        text = "Belum ada pesanan",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                    Text(
-                        text = "Pilih menu di sebelah kiri untuk mulai menambahkan item.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
             }
         }
     }

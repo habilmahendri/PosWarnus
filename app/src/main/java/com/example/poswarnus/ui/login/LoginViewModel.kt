@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.poswarnus.data.auth.AuthRepository
 import com.example.poswarnus.data.auth.AuthResult
+import com.example.poswarnus.ui.cart.CartStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +29,7 @@ sealed interface LoginEvent {
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val cartStore: CartStore,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -56,6 +58,9 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = authRepository.login(email, state.password)) {
                 is AuthResult.Success -> {
+                    // A back-exit keeps the process (and the singleton cart) alive without a logout,
+                    // so the previous cashier's order must not reach this session.
+                    cartStore.clear()
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     _events.send(LoginEvent.NavigateToDashboard)
                 }

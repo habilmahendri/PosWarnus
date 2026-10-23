@@ -4,12 +4,14 @@ import app.cash.turbine.test
 import com.example.poswarnus.data.catalog.Category
 import com.example.poswarnus.data.catalog.CatalogRepository
 import com.example.poswarnus.data.catalog.MenuItem
+import com.example.poswarnus.data.catalog.OptionGroup
 import com.example.poswarnus.data.catalog.RefreshResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -26,6 +28,7 @@ private class FakeCatalogRepository(
     val menuItemsFlow = MutableStateFlow<List<MenuItem>>(emptyList())
     override val categories: Flow<List<Category>> = categoriesFlow
     override val menuItems: Flow<List<MenuItem>> = menuItemsFlow
+    override fun observeOptionGroups(menuItemId: String): Flow<List<OptionGroup>> = flowOf(emptyList())
     var refreshCallCount = 0
         private set
     /** When set, refresh() suspends here until the test completes it — lets a test observe an in-flight refresh. */

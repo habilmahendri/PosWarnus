@@ -5,7 +5,10 @@ import androidx.room.Room
 import com.example.poswarnus.data.local.AppDatabase
 import com.example.poswarnus.data.local.CatalogTransactionRunner
 import com.example.poswarnus.data.local.CategoryDao
+import com.example.poswarnus.data.local.MIGRATION_1_2
 import com.example.poswarnus.data.local.MenuItemDao
+import com.example.poswarnus.data.local.OptionDao
+import com.example.poswarnus.data.local.OptionGroupDao
 import com.example.poswarnus.data.local.RoomCatalogTransactionRunner
 import dagger.Module
 import dagger.Provides
@@ -20,13 +23,21 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "pos_warnus.db").build()
+        Room.databaseBuilder(context, AppDatabase::class.java, "pos_warnus.db")
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideCategoryDao(db: AppDatabase): CategoryDao = db.categoryDao()
 
     @Provides
     fun provideMenuItemDao(db: AppDatabase): MenuItemDao = db.menuItemDao()
+
+    @Provides
+    fun provideOptionGroupDao(db: AppDatabase): OptionGroupDao = db.optionGroupDao()
+
+    @Provides
+    fun provideOptionDao(db: AppDatabase): OptionDao = db.optionDao()
 
     @Provides
     @Singleton

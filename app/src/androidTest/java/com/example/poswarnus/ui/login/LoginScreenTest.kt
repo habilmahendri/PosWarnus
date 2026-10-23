@@ -6,6 +6,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.example.poswarnus.data.auth.AuthRepository
 import com.example.poswarnus.data.auth.AuthResult
+import com.example.poswarnus.ui.cart.CartStore
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -39,7 +40,7 @@ class LoginScreenTest {
         // Uses a real LoginViewModel backed by a repository whose isLoggedIn() is false and
         // login() is never expected to be called for this case, so any AuthRepository stub works.
         composeTestRule.setContent {
-            LoginScreen(onNavigateToDashboard = {}, viewModel = LoginViewModel(NeverCalledAuthRepository()))
+            LoginScreen(onNavigateToDashboard = {}, viewModel = LoginViewModel(NeverCalledAuthRepository(), CartStore()))
         }
 
         composeTestRule.onNodeWithText("Login").performClick()
@@ -53,7 +54,7 @@ class LoginScreenTest {
         composeTestRule.setContent {
             LoginScreen(
                 onNavigateToDashboard = { navigated = true },
-                viewModel = LoginViewModel(AlwaysSucceedsAuthRepository()),
+                viewModel = LoginViewModel(AlwaysSucceedsAuthRepository(), CartStore()),
             )
         }
 
