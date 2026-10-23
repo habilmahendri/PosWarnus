@@ -9,7 +9,7 @@ Status as of 2026-10-23. Source of truth for scope is [PRD-pos.md](PRD-pos.md); 
 | 1 | Splash -> Login -> Dashboard -> Logout | 4.1, 4.2 | Done |
 | 2 | Room cache + Catalog/Dashboard | 4.3 | Done |
 | 3 | Menu Detail Dialog (variants/modifiers) + in-memory Cart | 4.4, 4.5 | Done (merged to `main`; verified on tablet and phone emulators) |
-| 3b | Featured Menu row + polish of Phases 1-3 (see below) | 4.12 | Done on branch `feature/phase3b-featured-menu-polish`, **not merged**; waiting for owner actions below |
+| 3b | Featured Menu row + polish of Phases 1-3 (see below) | 4.12 | Done (merged to `main`; `is_featured` applied to the live Supabase and verified on the tablet emulator) |
 | 4 | Tax/service charge, cash Payment, Payment Success, local transaction storage (UUID, `isTraining` flag from day one), "Bayar" goes live | 4.6, 4.7, 4.8, part of 4.9 | Planned |
 | 5 | Offline sync engine: send queue, idempotent upsert, offline / last-synced indicator, transactions tables in Supabase | rest of 4.9 | Planned |
 | 6 | Settings screen, Bluetooth receipt printing, Training Mode toggle + "LATIHAN" receipt marker | 4.10, 4.13 | Planned |
@@ -42,12 +42,13 @@ Verified on emulators (tablet 2560x1600, phone 1344x2992): system splash and app
 
 Deliberate deviation from PRD 4.12 ("selecting a category does not hide the row"): when the selected category has no items, the featured row is not shown, only the empty state.
 
-NOT verified: the "Menu Unggulan" row itself (the live Supabase has no `is_featured` column yet), the API 24-25 launcher icon (no AVD), a wrong-password error banner (not tried), Android 12+ themed (monochrome) icon.
+Update (2026-10-23, later): merged to `main`; `supabase/migrations/20261023100000_add_menu_items_is_featured.sql` was applied to the live project and "Ayam Katsu" / "Nasi Goreng Spesial" were marked featured. The "Menu Unggulan" row was then seen on the tablet emulator with live data (two cards above the grid). Known quirk: if the featured row first appears while the grid is already scrolled (e.g. the first refresh after items are marked), it sits above the viewport until the user scrolls up.
 
-Owner actions pending:
-1. Apply `supabase/migrations/20261023100000_add_menu_items_is_featured.sql` to the live project, then mark some menu items `is_featured = true`.
-2. Fill `menu_items.image_url` (all currently null, so cards show a grey placeholder).
-3. Review and merge the branch (nothing has been merged or pushed).
+Still NOT verified: the API 24-25 launcher icon (no AVD), a wrong-password error banner (not tried), Android 12+ themed (monochrome) icon, the featured row hiding while searching / keeping on category (covered by unit tests only).
+
+Owner actions still pending:
+1. Fill `menu_items.image_url` (all currently null, so cards show a grey placeholder).
+2. Nothing has been pushed to a remote.
 
 Known leftovers (minor): header title/subtitle lack ellipsis; pre-existing `LoginScreenTest` (androidTest) asserts the text "Login" while the UI says "Masuk" and has two lint errors; `CatalogRepository` refresh failure message is raw/English (not shown in the UI today).
 
