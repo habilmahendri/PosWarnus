@@ -41,7 +41,11 @@ class LoginViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            if (authRepository.isLoggedIn()) _events.send(LoginEvent.NavigateToDashboard)
+            if (authRepository.isLoggedIn()) {
+                // A restored session skips onLoginClicked, so training mode must be reset here too.
+                trainingModeStore.reset()
+                _events.send(LoginEvent.NavigateToDashboard)
+            }
         }
     }
 

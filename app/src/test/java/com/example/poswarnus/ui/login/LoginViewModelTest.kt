@@ -176,4 +176,16 @@ class LoginViewModelTest {
         }
         assertEquals(false, trainingModeStore.enabled.value)
     }
+
+    @Test
+    fun `restored session turns training mode off`() = runTest {
+        trainingModeStore.enable()
+        val viewModel = LoginViewModel(FakeAuthRepository(isLoggedInResult = true), cartStore, trainingModeStore)
+
+        viewModel.events.test {
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(LoginEvent.NavigateToDashboard, awaitItem())
+        }
+        assertEquals(false, trainingModeStore.enabled.value)
+    }
 }

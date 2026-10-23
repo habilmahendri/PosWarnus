@@ -1,7 +1,6 @@
 package com.example.poswarnus.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -27,6 +27,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -88,7 +89,11 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(SurfaceWhite)
-                .clickable { viewModel.onTrainingToggle(!state.trainingEnabled) }
+                .toggleable(
+                    value = state.trainingEnabled,
+                    role = Role.Switch,
+                    onValueChange = viewModel::onTrainingToggle,
+                )
                 .heightIn(min = 64.dp)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -109,7 +114,7 @@ fun SettingsScreen(
             }
             Switch(
                 checked = state.trainingEnabled,
-                onCheckedChange = viewModel::onTrainingToggle,
+                onCheckedChange = null,
                 colors = SwitchDefaults.colors(
                     checkedTrackColor = AccentOrange,
                     checkedThumbColor = SurfaceWhite,
