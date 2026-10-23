@@ -23,6 +23,13 @@ data class MenuItemDto(
     @SerialName("is_featured") val isFeatured: Boolean = false,
 )
 
+/** The single `tax_settings` row; `percent` is e.g. 10 or 7.5. */
+@Serializable
+data class TaxSettingsDto(
+    val label: String,
+    val percent: Double,
+)
+
 @Serializable
 data class OptionGroupDto(
     val id: String,
