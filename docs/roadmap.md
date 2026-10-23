@@ -13,17 +13,18 @@ Status as of 2026-10-23. Source of truth for scope is [PRD-pos.md](PRD-pos.md); 
 | 4 | Tax/service charge, cash Payment, Payment Success, local transaction storage (UUID, `isTraining` flag from day one), "Bayar" goes live | 4.6, 4.7, 4.8, part of 4.9 | Done (merged to `main` locally, not pushed); `tax_settings` applied to the live Supabase and verified on the tablet emulator |
 | 5 | Offline sync engine: send queue, idempotent upsert, offline / last-synced indicator, transactions tables in Supabase | rest of 4.9 | Done (merged to `main` locally, not pushed); `20261024000000_add_transactions_sync.sql` and its fix `20261024100000_fix_submit_transaction_security_definer.sql` applied to the live Supabase on 2026-10-24; uploads verified end to end on the tablet emulator and on the server |
 | 6a | Settings screen + Training Mode (toggle, banner, no persistence or sync while on) | 4.13, Settings part of 4.10 | Done (merged to `main` locally, not pushed); verified on the tablet emulator and at phone size |
-| 6b | Bluetooth receipt printing, "LATIHAN" receipt marker, "Cetak struk" goes live | rest of 4.10, receipt part of 4.13 | Planned (own spec) |
-| 7 | Transaction History (incl. "pending sync") | 4.11 | Planned |
+| 7 | Transaction History (incl. "pending sync") | 4.11 | Planned (next) |
 | 8 | "Frequently bought together" suggestions in the cart | 4.14 | Planned |
+| 9 | Bluetooth receipt printing (formerly 6b): printer pairing in Settings, formatted receipt, "LATIHAN" receipt marker, "Cetak struk" goes live | rest of 4.10, receipt part of 4.13 | Planned, deliberately last: the owner is still ordering the Bluetooth printer (2026-10-24), so it cannot be built or tested on hardware yet (own spec) |
 
 ## Why this order
 
 - **Featured Menu in 3b:** independent of every later phase, small, and visible to cashiers immediately. It also forces the next Room migration (v3), so Room schema export is switched on there, before the heavier v4+ migrations.
 - **Local transactions in Phase 4, sync in Phase 5:** a cashier must always be able to finish a sale offline, so the transaction is written locally from the first payment screen; sync is added behind it without changing the payment UI.
 - **`isTraining` from Phase 4:** sync (5), history (7) and suggestions (8) then only filter on a flag that already exists instead of reshaping data.
-- **Training Mode in Phase 6:** its toggle needs a Settings screen, which first appears with the printer.
-- **Suggestions last:** they need completed transactions to compute from, and some history to accumulate.
+- **Training Mode in Phase 6a:** its toggle needs a Settings screen, which therefore shipped with 6a; the printer pairing joins that screen later, in Phase 9.
+- **Suggestions after history:** they need completed transactions to compute from, and some history to accumulate.
+- **Printing last (Phase 9):** the Bluetooth thermal printer has not arrived (ordered by the owner), and the PRD scopes printing to "pair once, print, handle failures" on real hardware. Nothing else depends on it: Phases 7 and 8 read only the stored transactions, so the order is 7, 8, then 9 once the printer is in hand.
 
 ## Phase 3b contents
 
@@ -124,7 +125,7 @@ Deferred minors: the status-bar strip above the banner stays cream on Settings (
 
 ## Phase 6 contents (Settings, Bluetooth receipt printing, Training Mode)
 
-PRD: 4.10, 4.13.
+PRD: 4.10, 4.13. Split on 2026-10-24: Settings and Training Mode shipped as Phase 6a (see its status above); every printing item below (pairing, receipt, unreachable-printer handling, the "LATIHAN" receipt marker) moved to Phase 9, the last phase, because the printer is not here yet.
 
 - New Settings screen and its entry point from Dashboard (first screen of this kind — decide where it lives in the nav).
 - Bluetooth: scan/select/pair a printer once, persist the selection, reuse it for all later prints without re-pairing.
