@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.poswarnus.ui.components.BrandMark
-import com.example.poswarnus.ui.components.LightSystemBarIcons
 import com.example.poswarnus.ui.theme.AccentOrange
 import com.example.poswarnus.ui.theme.SurfaceWhite
 import kotlin.math.roundToInt
@@ -53,9 +52,6 @@ fun SplashScreen(
             if (event is SplashEvent.NavigateToLogin) onNavigateToLogin()
         }
     }
-
-    // The accent splash needs white system-bar icons while visible.
-    LightSystemBarIcons(lightStatusBar = false, lightNavigationBar = false)
 
     // Branding screen per docs/design-reference.md "Splash Screen": full-bleed accent background,
     // white content, indeterminate progress bar, caption pinned 32dp above the bottom.

@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.poswarnus.ui.components.BrandMark
 import com.example.poswarnus.ui.components.EyeGlyph
-import com.example.poswarnus.ui.components.LightSystemBarIcons
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
@@ -73,7 +72,7 @@ import androidx.compose.ui.unit.TextUnit
 // WideLayoutMinWidth (portrait phones) the brand block stacks above the form instead.
 private val BrandPaneWidth = 480.dp
 private val FormColumnWidth = 400.dp
-private val WideLayoutMinWidth = 900.dp
+val WideLayoutMinWidth = 900.dp
 
 @Composable
 fun LoginScreen(
@@ -90,7 +89,6 @@ fun LoginScreen(
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val wide = maxWidth >= WideLayoutMinWidth
-        if (!wide) LightSystemBarIcons(lightStatusBar = false)
         if (wide) {
             Row(modifier = Modifier.fillMaxSize()) {
                 Column(

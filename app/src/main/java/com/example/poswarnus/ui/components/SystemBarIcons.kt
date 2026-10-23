@@ -4,28 +4,23 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 /**
- * Sets the status/navigation bar icon appearance while this composable is in the composition and
- * restores whatever was set before when it leaves. Pass null to leave a bar untouched.
+ * Sets the status/navigation bar icon colours. Driven from one place (the nav graph, by route) so
+ * overlapping screens during a crossfade cannot fight over the value; nothing is restored.
  */
 @Composable
-fun LightSystemBarIcons(lightStatusBar: Boolean? = null, lightNavigationBar: Boolean? = null) {
+fun SystemBarIcons(lightStatusBarIcons: Boolean, lightNavigationBarIcons: Boolean) {
     val view = LocalView.current
-    DisposableEffect(lightStatusBar, lightNavigationBar) {
-        val window = view.context.findActivity()?.window
-        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
-        val previousStatus = controller?.isAppearanceLightStatusBars
-        val previousNavigation = controller?.isAppearanceLightNavigationBars
-        if (lightStatusBar != null) controller?.isAppearanceLightStatusBars = lightStatusBar
-        if (lightNavigationBar != null) controller?.isAppearanceLightNavigationBars = lightNavigationBar
-        onDispose {
-            if (lightStatusBar != null && previousStatus != null) controller?.isAppearanceLightStatusBars = previousStatus
-            if (lightNavigationBar != null && previousNavigation != null) controller?.isAppearanceLightNavigationBars = previousNavigation
-        }
+    SideEffect {
+        val window = view.context.findActivity()?.window ?: return@SideEffect
+        val controller = WindowCompat.getInsetsController(window, view)
+        // isAppearanceLight* = true means DARK icons.
+        controller.isAppearanceLightStatusBars = !lightStatusBarIcons
+        controller.isAppearanceLightNavigationBars = !lightNavigationBarIcons
     }
 }
 
