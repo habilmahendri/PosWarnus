@@ -10,7 +10,7 @@ Status as of 2026-10-23. Source of truth for scope is [PRD-pos.md](PRD-pos.md); 
 | 2 | Room cache + Catalog/Dashboard | 4.3 | Done |
 | 3 | Menu Detail Dialog (variants/modifiers) + in-memory Cart | 4.4, 4.5 | Done (merged to `main`; verified on tablet and phone emulators) |
 | 3b | Featured Menu row + polish of Phases 1-3 (see below) | 4.12 | Done (merged to `main`; `is_featured` applied to the live Supabase and verified on the tablet emulator) |
-| 4 | Tax/service charge, cash Payment, Payment Success, local transaction storage (UUID, `isTraining` flag from day one), "Bayar" goes live | 4.6, 4.7, 4.8, part of 4.9 | Done on branch `worktree-phase-4-payment`, not merged; `tax_settings` SQL not applied to the live Supabase |
+| 4 | Tax/service charge, cash Payment, Payment Success, local transaction storage (UUID, `isTraining` flag from day one), "Bayar" goes live | 4.6, 4.7, 4.8, part of 4.9 | Done (merged to `main` locally, not pushed); `tax_settings` SQL not applied to the live Supabase |
 | 5 | Offline sync engine: send queue, idempotent upsert, offline / last-synced indicator, transactions tables in Supabase | rest of 4.9 | Planned |
 | 6 | Settings screen, Bluetooth receipt printing, Training Mode toggle + "LATIHAN" receipt marker | 4.10, 4.13 | Planned |
 | 7 | Transaction History (incl. "pending sync") | 4.11 | Planned |
