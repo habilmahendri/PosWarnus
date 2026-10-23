@@ -35,10 +35,14 @@ private class FakeCatalogRepository : CatalogRepository {
     /** When set, observeOptionGroups suspends until completed, so a test can see the loading state. */
     var groupsGate: CompletableDeferred<Unit>? = null
 
+    /** When set, observeOptionGroups fails with it instead of emitting. */
+    var groupsError: Throwable? = null
+
     override val categories: Flow<List<Category>> = flowOf(emptyList())
     override val menuItems: Flow<List<MenuItem>> = menuItemsFlow
     override fun observeOptionGroups(menuItemId: String): Flow<List<OptionGroup>> = flow {
         groupsGate?.await()
+        groupsError?.let { throw it }
         emit(groupsByItem[menuItemId].orEmpty())
     }
     override suspend fun refresh(): RefreshResult = RefreshResult.Success
@@ -122,6 +126,20 @@ class CartViewModelTest {
         assertEquals(listOf(sizeGroup, toppingGroup), draft!!.groups)
         assertEquals(emptyMap<String, Set<String>>(), draft.selected)
         assertEquals(1, draft.quantity)
+    }
+
+    @Test
+    fun `failing option group load closes the dialog`() = runTest {
+        repository.groupsError = IllegalStateException("db closed")
+        val vm = viewModel()
+
+        vm.onMenuItemClicked(nasiGoreng)
+        advance()
+
+        assertNull(vm.state.dialog)
+        vm.confirmDialog()
+        advance()
+        assertTrue(vm.state.lines.isEmpty())
     }
 
     @Test

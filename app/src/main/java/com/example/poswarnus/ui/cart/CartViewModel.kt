@@ -8,6 +8,7 @@ import com.example.poswarnus.data.catalog.OptionGroup
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -100,10 +101,16 @@ class CartViewModel @Inject constructor(
         val session = ++nextSession
         dialogState.value = DialogSession(session, DialogUiState(target, item, draft = null))
         viewModelScope.launch {
-            val groups = repository.observeOptionGroups(item.id).first()
-            val draft = buildDraft(groups)
+            val groups = runCatching { repository.observeOptionGroups(item.id).first() }
+                .onFailure { if (it is CancellationException) throw it }
+                .getOrNull()
             dialogState.update { current ->
-                if (current?.session == session) current.copy(ui = current.ui.copy(draft = draft)) else current
+                when {
+                    current?.session != session -> current
+                    // Can't load the options: close rather than leave a dialog stuck loading.
+                    groups == null -> null
+                    else -> current.copy(ui = current.ui.copy(draft = buildDraft(groups)))
+                }
             }
         }
     }

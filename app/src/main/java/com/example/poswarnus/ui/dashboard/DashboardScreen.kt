@@ -190,17 +190,19 @@ fun DashboardScreen(
                 cartPanel(Modifier.fillMaxWidth().heightIn(max = windowHeight * 0.85f))
             }
         }
-    }
 
-    cartState.dialog?.let { dialog ->
-        MenuDetailDialog(
-            state = dialog,
-            onToggle = cartViewModel::toggleOption,
-            onIncrement = cartViewModel::incrementQuantity,
-            onDecrement = cartViewModel::decrementQuantity,
-            onConfirm = cartViewModel::confirmDialog,
-            onDismiss = cartViewModel::dismissDialog,
-        )
+        // Composed after the sheet in the same scope so its window is created above the sheet's,
+        // including when both are recreated after a rotation.
+        cartState.dialog?.let { dialog ->
+            MenuDetailDialog(
+                state = dialog,
+                onToggle = cartViewModel::toggleOption,
+                onIncrement = cartViewModel::incrementQuantity,
+                onDecrement = cartViewModel::decrementQuantity,
+                onConfirm = cartViewModel::confirmDialog,
+                onDismiss = cartViewModel::dismissDialog,
+            )
+        }
     }
 }
 
