@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -31,7 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -71,9 +74,11 @@ fun PaymentDialog(
             dismissOnBackPress = !isSuccess,
             dismissOnClickOutside = !isSuccess,
             usePlatformDefaultWidth = false,
+            // Lets imePadding() below shrink the card above the keyboard instead of hiding behind it.
+            decorFitsSystemWindows = false,
         ),
     ) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().imePadding(), contentAlignment = Alignment.Center) {
             Surface(
                 modifier = Modifier.padding(16.dp).widthIn(max = 480.dp).fillMaxWidth().heightIn(max = maxHeight - 32.dp),
                 shape = RoundedCornerShape(10.dp),
@@ -114,9 +119,12 @@ private fun PayingContent(
         style = Tnum,
     )
 
+    // The text is re-formatted on every keystroke, so the caret is pinned to the end; otherwise it
+    // stays where the old, shorter text had it and the next digit lands mid-number.
+    val cashText = if (state.cash == 0L) "" else formatRupiah(state.cash)
     OutlinedTextField(
-        value = if (state.cash == 0L) "" else formatRupiah(state.cash),
-        onValueChange = onCashInput,
+        value = TextFieldValue(cashText, selection = TextRange(cashText.length)),
+        onValueChange = { onCashInput(it.text) },
         label = { Text("Uang diterima") },
         placeholder = { Text("Rp0") },
         singleLine = true,

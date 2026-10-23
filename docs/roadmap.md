@@ -10,7 +10,7 @@ Status as of 2026-10-23. Source of truth for scope is [PRD-pos.md](PRD-pos.md); 
 | 2 | Room cache + Catalog/Dashboard | 4.3 | Done |
 | 3 | Menu Detail Dialog (variants/modifiers) + in-memory Cart | 4.4, 4.5 | Done (merged to `main`; verified on tablet and phone emulators) |
 | 3b | Featured Menu row + polish of Phases 1-3 (see below) | 4.12 | Done (merged to `main`; `is_featured` applied to the live Supabase and verified on the tablet emulator) |
-| 4 | Tax/service charge, cash Payment, Payment Success, local transaction storage (UUID, `isTraining` flag from day one), "Bayar" goes live | 4.6, 4.7, 4.8, part of 4.9 | Planned |
+| 4 | Tax/service charge, cash Payment, Payment Success, local transaction storage (UUID, `isTraining` flag from day one), "Bayar" goes live | 4.6, 4.7, 4.8, part of 4.9 | Done on branch `worktree-phase-4-payment`, not merged; `tax_settings` SQL not applied to the live Supabase |
 | 5 | Offline sync engine: send queue, idempotent upsert, offline / last-synced indicator, transactions tables in Supabase | rest of 4.9 | Planned |
 | 6 | Settings screen, Bluetooth receipt printing, Training Mode toggle + "LATIHAN" receipt marker | 4.10, 4.13 | Planned |
 | 7 | Transaction History (incl. "pending sync") | 4.11 | Planned |
@@ -51,6 +51,18 @@ Owner actions still pending:
 2. Nothing has been pushed to a remote.
 
 Known leftovers (minor): header title/subtitle lack ellipsis; pre-existing `LoginScreenTest` (androidTest) asserts the text "Login" while the UI says "Masuk" and has two lint errors; `CatalogRepository` refresh failure message is raw/English (not shown in the UI today).
+
+## Phase 4 status (2026-10-24)
+
+Spec: `docs/superpowers/specs/2026-10-23-cash-payment-local-transactions-design.md`; plan: `docs/superpowers/plans/2026-10-23-pos-cash-payment-local-transactions.md`. Decisions: no total rounding, quick cash buttons ("Uang pas" + up to 3 round amounts), change shown as a number only, tax "Pajak" 10% from `tax_settings`.
+
+Implemented on the branch: `OrderTotals` / `CashMath`, Room v4 (`tax_settings`, `transactions`, `transaction_lines`, `MIGRATION_3_4`, schema `4.json`), `TaxRepository`, `TransactionRepository` (atomic, idempotent on the UUID), `PaymentViewModel`, cart footer with tax line and grand total, `PaymentDialog` with a Success state that only "Selesai" closes, `AuthRepository.currentUserId()`.
+
+Verified on the tablet emulator (live Supabase, tax table absent): footer shows "Pajak 0%" + "Pajak belum dimuat"; quick amounts for Rp28.000 are Rp30.000 / Rp50.000 / Rp100.000; Rp27.999 shows "Uang kurang Rp1" with Konfirmasi disabled; "Uang pas" and Rp50.000 (change Rp22.000) complete a sale; back and outside tap do not close Success; "Selesai" empties the cart; a sale made with Wi-Fi off completes; the pulled database holds both sales with `isTraining = 0` and the option snapshot. Phone-size layout (1080x2400 via `wm size`): bar, cart sheet and dialog fit in portrait. Two defects found during this pass and fixed: the caret landed mid-number after the thousands separator was inserted, and the keyboard hid the change line and buttons (fixed with a pinned caret and `imePadding`).
+
+NOT verified: a restart showing "Pajak 10%" with totals including tax (needs the owner to apply `supabase/migrations/20261023200000_add_tax_settings.sql`); a failed save showing the error and retrying (covered by unit tests only); landscape phone with the keyboard open; a physical device; TalkBack.
+
+Owner actions: apply `20261023200000_add_tax_settings.sql` (not idempotent; seeds Pajak 10%). Known leftovers: the two lint errors in the androidTest `LoginScreenTest`; "Cetak struk" is intentionally disabled until Phase 6.
 
 ## Phase 4 contents (Tax/service charge, cash Payment, local transaction storage)
 
