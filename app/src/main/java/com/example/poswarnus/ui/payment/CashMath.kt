@@ -17,6 +17,12 @@ object CashMath {
     fun parseInput(raw: String): Long =
         raw.filter { it.isDigit() }.take(MAX_DIGITS).toLongOrNull() ?: 0L
 
+    /** Numpad entry: "5" or "000" appended to [cash]; anything past [MAX_DIGITS] digits is dropped. */
+    fun appendDigits(cash: Long, digits: String): Long =
+        parseInput((if (cash == 0L) "" else cash.toString()) + digits)
+
+    fun backspace(cash: Long): Long = cash / 10
+
     fun change(cash: Long, total: Long): Long = cash - total
 
     fun canPay(cash: Long, total: Long): Boolean = total > 0 && cash >= total

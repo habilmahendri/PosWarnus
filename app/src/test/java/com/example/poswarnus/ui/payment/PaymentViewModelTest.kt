@@ -151,6 +151,56 @@ class PaymentViewModelTest {
     }
 
     @Test
+    fun `numpad digits and backspace edit the cash`() = runTest {
+        fillCart()
+        val vm = viewModel()
+        vm.opened()
+        vm.onDigits("5")
+        vm.onDigits("000")
+        vm.onDigits("0")
+        assertEquals(50000L, vm.paying().cash)
+        vm.onBackspace()
+        assertEquals(5000L, vm.paying().cash)
+        vm.onBackspace(); vm.onBackspace(); vm.onBackspace(); vm.onBackspace(); vm.onBackspace()
+        assertEquals(0L, vm.paying().cash)
+    }
+
+    @Test
+    fun `numpad is ignored while saving`() = runTest {
+        fillCart()
+        val vm = viewModel()
+        vm.opened()
+        vm.onExactAmount()
+        transactions.gate = CompletableDeferred()
+        vm.confirm()
+        settle()
+        vm.onDigits("5")
+        vm.onBackspace()
+        assertEquals(47300L, vm.paying().cash)
+    }
+
+    @Test
+    fun `paying exposes the frozen cart lines for the summary`() = runTest {
+        fillCart()
+        val vm = viewModel()
+        assertEquals(listOf("l1", "l2"), vm.opened().lines.map { it.lineId })
+        cartStore.add(nasi.copy(lineId = "l3", name = "Lain"))
+        settle()
+        assertEquals(listOf("l1", "l2"), vm.paying().lines.map { it.lineId })
+    }
+
+    @Test
+    fun `success keeps the lines and typing after a failure still works`() = runTest {
+        fillCart()
+        val vm = viewModel()
+        vm.opened()
+        vm.onExactAmount()
+        vm.confirm()
+        settle()
+        assertEquals(listOf("l1", "l2"), (vm.uiState.value as PaymentUiState.Success).lines.map { it.lineId })
+    }
+
+    @Test
     fun `exact amount sets cash to the grand total and enables confirm`() = runTest {
         fillCart()
         val vm = viewModel()

@@ -216,7 +216,8 @@ fun DashboardScreen(
 
         PaymentDialog(
             state = paymentState,
-            onCashInput = paymentViewModel::onCashInput,
+            onDigits = paymentViewModel::onDigits,
+            onBackspace = paymentViewModel::onBackspace,
             onQuickAmount = paymentViewModel::onQuickAmount,
             onExact = paymentViewModel::onExactAmount,
             onConfirm = paymentViewModel::confirm,

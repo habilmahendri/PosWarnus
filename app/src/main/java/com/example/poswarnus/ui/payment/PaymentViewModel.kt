@@ -26,6 +26,8 @@ sealed interface PaymentUiState {
     /** [change] is negative while the cash is short. */
     data class Paying(
         val totals: OrderTotals,
+        /** The cart as frozen when the screen opened, for the order summary. */
+        val lines: List<CartLine>,
         val cash: Long,
         val quickAmounts: List<Long>,
         val change: Long,
@@ -34,7 +36,12 @@ sealed interface PaymentUiState {
         val error: Boolean,
     ) : PaymentUiState
 
-    data class Success(val totals: OrderTotals, val cash: Long, val change: Long) : PaymentUiState
+    data class Success(
+        val totals: OrderTotals,
+        val lines: List<CartLine>,
+        val cash: Long,
+        val change: Long,
+    ) : PaymentUiState
 }
 
 @HiltViewModel
@@ -60,28 +67,33 @@ class PaymentViewModel @Inject constructor(
         opening = true
         viewModelScope.launch {
             try {
-                val totals = OrderTotals.of(cartStore.state.value.subtotal, taxRepository.taxConfig.first())
+                val totals = OrderTotals.of(lines.sumOf { it.lineTotal }, taxRepository.taxConfig.first())
                 frozen = Frozen(UUID.randomUUID().toString(), System.currentTimeMillis(), lines, totals)
-                _uiState.value = paying(totals, cash = 0, isSaving = false, error = false)
+                _uiState.value = paying(totals, lines, cash = 0, isSaving = false, error = false)
             } finally {
                 opening = false
             }
         }
     }
 
-    fun onCashInput(raw: String) = setCash(CashMath.parseInput(raw))
+    fun onCashInput(raw: String) = editCash { CashMath.parseInput(raw) }
 
-    fun onQuickAmount(amount: Long) = setCash(amount)
+    fun onQuickAmount(amount: Long) = editCash { amount }
 
     fun onExactAmount() {
         val totals = frozen?.totals ?: return
-        setCash(totals.grandTotal)
+        editCash { totals.grandTotal }
     }
 
-    private fun setCash(cash: Long) {
+    /** Numpad key: "0".."9" or "000". */
+    fun onDigits(digits: String) = editCash { CashMath.appendDigits(it, digits) }
+
+    fun onBackspace() = editCash { CashMath.backspace(it) }
+
+    private fun editCash(transform: (Long) -> Long) {
         _uiState.update { current ->
             if (current is PaymentUiState.Paying && !current.isSaving) {
-                paying(current.totals, cash, isSaving = false, error = false)
+                paying(current.totals, current.lines, transform(current.cash), isSaving = false, error = false)
             } else {
                 current
             }
@@ -112,7 +124,7 @@ class PaymentViewModel @Inject constructor(
                 if (current !is PaymentUiState.Paying) {
                     current
                 } else if (result.isSuccess) {
-                    PaymentUiState.Success(sale.totals, previous.cash, previous.cash - sale.totals.grandTotal)
+                    PaymentUiState.Success(sale.totals, sale.lines, previous.cash, previous.cash - sale.totals.grandTotal)
                 } else {
                     current.copy(isSaving = false, error = true)
                 }
@@ -139,9 +151,10 @@ class PaymentViewModel @Inject constructor(
         }
     }
 
-    private fun paying(totals: OrderTotals, cash: Long, isSaving: Boolean, error: Boolean) =
+    private fun paying(totals: OrderTotals, lines: List<CartLine>, cash: Long, isSaving: Boolean, error: Boolean) =
         PaymentUiState.Paying(
             totals = totals,
+            lines = lines,
             cash = cash,
             quickAmounts = CashMath.quickAmounts(totals.grandTotal),
             change = CashMath.change(cash, totals.grandTotal),

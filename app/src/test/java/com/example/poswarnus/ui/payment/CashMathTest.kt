@@ -32,6 +32,38 @@ class CashMathTest {
     }
 
     @Test
+    fun `appendDigits adds digits at the end`() {
+        assertEquals(5L, CashMath.appendDigits(0, "5"))
+        assertEquals(50L, CashMath.appendDigits(5, "0"))
+        assertEquals(50000L, CashMath.appendDigits(50, "000"))
+    }
+
+    @Test
+    fun `appendDigits on zero stays zero for zeros`() {
+        assertEquals(0L, CashMath.appendDigits(0, "0"))
+        assertEquals(0L, CashMath.appendDigits(0, "000"))
+    }
+
+    @Test
+    fun `appendDigits ignores input past nine digits`() {
+        assertEquals(123456789L, CashMath.appendDigits(123456789, "5"))
+        assertEquals(123456789L, CashMath.appendDigits(123456789, "000"))
+    }
+
+    @Test
+    fun `appendDigits keeps what fits when a triple zero would overflow`() {
+        assertEquals(123456000L, CashMath.appendDigits(123456, "000"))
+        assertEquals(123456700L, CashMath.appendDigits(1234567, "00"))
+    }
+
+    @Test
+    fun `backspace drops the last digit`() {
+        assertEquals(5000L, CashMath.backspace(50000))
+        assertEquals(0L, CashMath.backspace(7))
+        assertEquals(0L, CashMath.backspace(0))
+    }
+
+    @Test
     fun `change is cash minus total`() {
         assertEquals(7000L, CashMath.change(50000, 43000))
     }
