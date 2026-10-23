@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.poswarnus.data.catalog.CatalogRepository
 import com.example.poswarnus.data.catalog.MenuItem
 import com.example.poswarnus.data.catalog.OptionGroup
+import com.example.poswarnus.data.tax.TaxRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
@@ -36,12 +37,14 @@ data class CartUiState(
     val quantityByMenuItem: Map<String, Int> = emptyMap(),
     val dialog: DialogUiState? = null,
     val showClearConfirm: Boolean = false,
+    val totals: OrderTotals = OrderTotals.of(0, null),
 )
 
 @HiltViewModel
 class CartViewModel @Inject constructor(
     private val repository: CatalogRepository,
     private val cartStore: CartStore,
+    private val taxRepository: TaxRepository,
 ) : ViewModel() {
     // `session` tags each opened dialog so a slow group load can't fill a dialog opened later.
     private data class DialogSession(val session: Long, val ui: DialogUiState)
@@ -58,7 +61,8 @@ class CartViewModel @Inject constructor(
         menuItems,
         dialogState,
         showClearConfirm,
-    ) { cart, items, dialog, clearConfirm ->
+        taxRepository.taxConfig,
+    ) { cart, items, dialog, clearConfirm, taxConfig ->
         val byId = items.associateBy { it.id }
         // An Edit dialog whose line vanished (merged, removed, cart cleared on logout) must not dangle.
         val visibleDialog = dialog?.ui?.takeIf { ui ->
@@ -75,6 +79,7 @@ class CartViewModel @Inject constructor(
             dialog = visibleDialog,
             // A confirm left open while the last line was removed elsewhere would clear nothing.
             showClearConfirm = clearConfirm && cart.lines.isNotEmpty(),
+            totals = OrderTotals.of(cart.subtotal, taxConfig),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, CartUiState())
 

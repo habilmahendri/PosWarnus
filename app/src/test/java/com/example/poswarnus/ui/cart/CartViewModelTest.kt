@@ -8,6 +8,8 @@ import com.example.poswarnus.data.catalog.OptionGroup
 import com.example.poswarnus.data.catalog.OptionKind
 import com.example.poswarnus.data.catalog.RefreshResult
 import com.example.poswarnus.data.catalog.SelectionMode
+import com.example.poswarnus.data.tax.TaxConfig
+import com.example.poswarnus.data.tax.TaxRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -48,6 +50,12 @@ private class FakeCatalogRepository : CatalogRepository {
     override suspend fun refresh(): RefreshResult = RefreshResult.Success
 }
 
+private class FakeTaxRepository : TaxRepository {
+    val config = MutableStateFlow<TaxConfig?>(TaxConfig("Pajak", 1000))
+    override val taxConfig: Flow<TaxConfig?> = config
+    override suspend fun refresh() {}
+}
+
 private val nasiGoreng = MenuItem("1", "a", "Nasi Goreng", 25000.0, null, true)
 private val esTeh = MenuItem("2", "b", "Es Teh", 5000.0, null, true)
 private val sotoHabis = MenuItem("3", "a", "Soto Ayam", 22000.0, null, false)
@@ -79,7 +87,9 @@ class CartViewModelTest {
 
     private fun advance() = dispatcher.scheduler.advanceUntilIdle()
 
-    private fun viewModel() = CartViewModel(repository, cartStore).also { advance() }
+    private val taxRepository = FakeTaxRepository()
+
+    private fun viewModel() = CartViewModel(repository, cartStore, taxRepository).also { advance() }
 
     private val CartViewModel.state get() = uiState.value
 
@@ -400,6 +410,47 @@ class CartViewModelTest {
         // Refilling the cart must not resurface the stale request.
         vm.addNasi("g-size" to "o-lg")
         assertFalse(vm.state.showClearConfirm)
+    }
+
+    @Test
+    fun `totals add tax to the subtotal`() = runTest {
+        val vm = viewModel()
+        vm.addNasi("g-size" to "o-reg", quantity = 2)
+
+        assertEquals(50000L, vm.state.totals.subtotal)
+        assertEquals(5000L, vm.state.totals.taxAmount)
+        assertEquals(55000L, vm.state.totals.grandTotal)
+        assertEquals("Pajak 10%", vm.state.totals.taxLine)
+    }
+
+    @Test
+    fun `totals update when the tax config changes`() = runTest {
+        val vm = viewModel()
+        vm.addNasi("g-size" to "o-reg", quantity = 2)
+
+        taxRepository.config.value = TaxConfig("Pajak", 1100)
+        advance()
+
+        assertEquals(5500L, vm.state.totals.taxAmount)
+        assertEquals(55500L, vm.state.totals.grandTotal)
+    }
+
+    @Test
+    fun `totals without cached tax have zero tax and taxMissing`() = runTest {
+        taxRepository.config.value = null
+        val vm = viewModel()
+        vm.addNasi("g-size" to "o-reg", quantity = 2)
+
+        assertEquals(0L, vm.state.totals.taxAmount)
+        assertEquals(50000L, vm.state.totals.grandTotal)
+        assertTrue(vm.state.totals.taxMissing)
+    }
+
+    @Test
+    fun `empty cart totals are zero`() = runTest {
+        val vm = viewModel()
+        assertEquals(0L, vm.state.totals.subtotal)
+        assertEquals(0L, vm.state.totals.grandTotal)
     }
 
     @Test

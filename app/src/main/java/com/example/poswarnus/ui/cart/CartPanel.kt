@@ -226,7 +226,11 @@ private fun PanelFooter(state: CartUiState, isEmpty: Boolean, onCheckout: () -> 
     Column(modifier = Modifier.fillMaxWidth().background(SurfaceWhite)) {
         HorizontalDivider(color = LineStrong)
         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryRow("Subtotal", formatRupiah(state.subtotal))
+            SummaryRow("Subtotal", formatRupiah(state.totals.subtotal))
+            SummaryRow(state.totals.taxLine, formatRupiah(state.totals.taxAmount))
+            if (state.totals.taxMissing) {
+                Text("Pajak belum dimuat", fontSize = 12.sp, color = TextSecondary)
+            }
             SummaryRow("Jumlah item", state.totalQuantity.toString())
             HorizontalDivider(color = LineDefault, modifier = Modifier.padding(vertical = 4.dp))
             Row(
@@ -236,7 +240,7 @@ private fun PanelFooter(state: CartUiState, isEmpty: Boolean, onCheckout: () -> 
             ) {
                 Text("Total", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                 Text(
-                    formatRupiah(state.subtotal),
+                    formatRupiah(state.totals.grandTotal),
                     fontSize = 32.sp,
                     lineHeight = 38.sp,
                     fontWeight = FontWeight.Bold,

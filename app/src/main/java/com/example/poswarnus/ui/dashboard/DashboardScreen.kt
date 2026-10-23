@@ -177,7 +177,7 @@ fun DashboardScreen(
         if (showPhoneBar) {
             PhoneCartBar(
                 totalQuantity = cartState.totalQuantity,
-                subtotal = cartState.subtotal,
+                total = cartState.totals.grandTotal,
                 onOpen = { showCartSheet = true },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
@@ -216,7 +216,7 @@ fun DashboardScreen(
 @Composable
 private fun PhoneCartBar(
     totalQuantity: Int,
-    subtotal: Long,
+    total: Long,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -236,7 +236,7 @@ private fun PhoneCartBar(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "$totalQuantity item · ${formatRupiah(subtotal)}",
+                text = "$totalQuantity item · ${formatRupiah(total)}",
                 style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
                 fontWeight = FontWeight.SemiBold,
                 color = TextPrimary,
