@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -409,6 +410,28 @@ private fun CatalogPane(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    if (state.featuredItems.isNotEmpty()) {
+                        item(key = "featured", span = { GridItemSpan(maxLineSpan) }) {
+                            Column {
+                                Text(
+                                    text = "Menu Unggulan",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(bottom = 8.dp),
+                                )
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    items(state.featuredItems, key = { it.id }) { item ->
+                                        MenuItemCard(
+                                            item = item,
+                                            modifier = Modifier.width(176.dp),
+                                            inCartQuantity = inCartQuantities[item.id] ?: 0,
+                                            onClick = { onMenuItemClick(item) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                     items(state.visibleItems, key = { it.id }) { item ->
                         MenuItemCard(
                             item = item,
