@@ -52,6 +52,66 @@ Owner actions still pending:
 
 Known leftovers (minor): header title/subtitle lack ellipsis; pre-existing `LoginScreenTest` (androidTest) asserts the text "Login" while the UI says "Masuk" and has two lint errors; `CatalogRepository` refresh failure message is raw/English (not shown in the UI today).
 
+## Phase 4 contents (Tax/service charge, cash Payment, local transaction storage)
+
+PRD: 4.6, 4.7, 4.8, part of 4.9.
+
+- Tax/service charge: read the percentage from a Supabase settings/config table, cache the last-successful value for use within the session and as an offline fallback (4.6).
+- Cart: add live subtotal / tax line (showing percentage + amount) / grand total display (4.5, 4.6).
+- Payment Dialog: cash-received input, live change = cash − grand total, confirm disabled while cash < grand total, no negative-change confirmations (4.7).
+- New Room entity for a completed transaction: order lines with modifier/variant snapshot, quantities, subtotal, tax amount, grand total, cash received, change, timestamp, cashier id, a locally generated UUID, and an `isTraining` flag — wired into the model and into the payment/local-write path **now**, even though the Training Mode toggle/banner only ship in Phase 6, so persistence can already branch on it without a later retrofit (per PRD 4.13).
+- On confirm: write the transaction to Room; on failure show an error and let the cashier retry without losing the entered cash value; on success transition to Payment Success (4.8).
+- Payment Success screen: grand total / cash received / change; "Print receipt" action present but inert (wired to real Bluetooth printing in Phase 6) and "Done" (clears cart, returns to Dashboard).
+- Resolve the two open decisions below before/while specing this phase, since they affect the payment math and receipt content: total rounding, and whether to show a change bill/coin breakdown.
+- Explicitly deferred to Phase 5: the sync queue / sync-status field and any upload logic — Phase 4 only writes the row locally with its UUID and `isTraining` already in place.
+
+## Phase 5 contents (Offline sync engine)
+
+PRD: rest of 4.9.
+
+- Sync status on each local transaction (e.g. pending / synced / failed) and a queue/worker that uploads pending, non-training rows.
+- Idempotent upsert to new Supabase `transactions` + line-item tables, keyed by the local UUID so retries never duplicate.
+- Connectivity-triggered + periodic retry (WorkManager fits the existing Room-based stack) when connectivity returns.
+- Offline / "last synced at" indicator, extended from the catalog cache's existing cached-state handling to cover transaction sync too.
+- "Can't load catalog, check connection" state for a fresh install that's never populated the cache (catalog half of 4.9, if not already covered by Phase 2's caching).
+- New Supabase tables for transactions/lines: needs an owner-action migration step, same pattern as 3b's `is_featured` migration.
+- No UI change to the Payment dialog itself — sync happens behind what Phase 4 already built.
+
+## Phase 6 contents (Settings, Bluetooth receipt printing, Training Mode)
+
+PRD: 4.10, 4.13.
+
+- New Settings screen and its entry point from Dashboard (first screen of this kind — decide where it lives in the nav).
+- Bluetooth: scan/select/pair a printer once, persist the selection, reuse it for all later prints without re-pairing.
+- Formatted receipt (outlet name, date/time, lines with modifier/variant/qty/price, subtotal, tax/service charge, grand total, cash received, change) sent to the saved printer; wires the Phase 4 "Print receipt" button to a real action.
+- If no printer paired yet, "Print receipt" routes to the pairing step instead of failing silently; if the paired printer is unreachable, show an error with retry that doesn't affect the already-completed transaction.
+- "Mode Pelatihan" toggle in Settings: confirmation on enabling, clears the cart on disabling.
+- Persistent high-contrast "MODE PELATIHAN" banner from Dashboard through Payment Success while active.
+- Turn on the `isTraining` branch already built in Phase 4: when active, payment success does not persist the transaction and never enters the Phase 5 sync queue.
+- Receipt printed in training mode is marked "LATIHAN – BUKAN TRANSAKSI".
+- Training Mode auto-off on logout and on cold app start.
+
+## Phase 7 contents (Transaction History)
+
+PRD: 4.11.
+
+- History screen (new nav entry) listing local transactions most-recent-first: date/time, grand total, payment summary.
+- Detail view per transaction reusing the Phase 4 transaction/line snapshot (items, modifiers/variants, quantities, subtotal, tax, grand total, cash received, change).
+- "Pending sync" badge driven by the Phase 5 sync-status field.
+- Training transactions never appear here since Phase 6 already skips persisting them — no extra filtering needed beyond that invariant.
+- No edit/refund/void actions (non-goal).
+
+## Phase 8 contents (Frequently bought together)
+
+PRD: 4.14.
+
+- On-device co-occurrence computation over completed, non-training transactions (Phase 4/7's data): named, tunable constants for the thresholds (trigger item in ≥20 completed transactions; candidate co-occurs in ≥30% of them).
+- Rank candidates by best share across the cart's trigger items; top 3, excluding items already in the cart or currently unavailable; ignore items no longer in the catalog.
+- Cache computed suggestions; refresh on app start and after every 50 newly completed transactions (needs a running counter).
+- Cart UI: "Sering dibeli bareng" row (1–3 cards: name, price, add button), shown only when at least one candidate qualifies, otherwise nothing (no empty state).
+- Add button behaves exactly like tapping the item in the catalog (opens Menu Detail Dialog if it has required options, else adds qty 1); never changes the cart/totals until the cashier acts.
+- Row can be dismissed for the current order without blocking checkout.
+
 ## Open decisions (before Phase 4)
 
 - **Rounding:** round the grand total to the nearest Rp100 / Rp500? (affects totals, change and receipt.)

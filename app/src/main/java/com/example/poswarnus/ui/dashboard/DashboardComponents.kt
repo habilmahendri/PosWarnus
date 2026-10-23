@@ -55,6 +55,16 @@ fun formatRupiah(price: Double): String = "Rp${rupiahFormat.format(price)}"
 
 fun formatRupiah(amount: Long): String = "Rp${rupiahFormat.format(amount)}"
 
+/** "Ayam Katsu" -> "AK" for items with no [MenuItem.imageUrl]; single-word names use its first two letters. */
+fun menuItemInitials(name: String): String {
+    val words = name.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+    return when {
+        words.isEmpty() -> ""
+        words.size == 1 -> words[0].take(2).uppercase()
+        else -> (words[0].take(1) + words[1].take(1)).uppercase()
+    }
+}
+
 /**
  * Menu card — docs/design-reference.md "Dashboard" § catalog grid: white card, 1px line border,
  * 10dp radius, 16:9 photo, 2-line name with reserved height, tabular price. An unavailable item
@@ -102,7 +112,17 @@ fun MenuItemCard(
                         modifier = imageModifier,
                     )
                 } else {
-                    Box(modifier = imageModifier.background(MaterialTheme.colorScheme.surfaceVariant))
+                    Box(
+                        modifier = imageModifier.background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = menuItemInitials(item.name),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = TextSecondary,
+                        )
+                    }
                 }
                 if (!isAvailable) {
                     Surface(

@@ -64,6 +64,7 @@ import com.example.poswarnus.ui.components.CloseGlyph
 import com.example.poswarnus.ui.components.MinusGlyph
 import com.example.poswarnus.ui.components.PlusGlyph
 import com.example.poswarnus.ui.dashboard.formatRupiah
+import com.example.poswarnus.ui.dashboard.menuItemInitials
 import com.example.poswarnus.ui.theme.AccentOrange
 import com.example.poswarnus.ui.theme.AccentOrangeDark
 import com.example.poswarnus.ui.theme.AccentTint
@@ -168,7 +169,17 @@ private fun ItemHeader(item: MenuItem, imageRatio: Float, basePrice: Long?) {
             modifier = imageModifier,
         )
     } else {
-        Box(modifier = imageModifier.background(MaterialTheme.colorScheme.surfaceVariant))
+        Box(
+            modifier = imageModifier.background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = menuItemInitials(item.name),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = TextSecondary,
+            )
+        }
     }
     Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(item.name, fontSize = 22.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
