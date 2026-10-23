@@ -10,4 +10,10 @@ class SupabaseCatalogRemoteDataSource(private val client: SupabaseClient) : Cata
 
     override suspend fun fetchMenuItems(): List<MenuItemDto> =
         client.postgrest.from("menu_items").select().decodeList()
+
+    override suspend fun fetchOptionGroups(): List<OptionGroupDto> =
+        client.postgrest.from("option_groups").select().decodeList()
+
+    override suspend fun fetchOptions(): List<OptionDto> =
+        client.postgrest.from("options").select().decodeList()
 }
