@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.poswarnus.data.auth.AuthRepository
 import com.example.poswarnus.data.tax.TaxRepository
+import com.example.poswarnus.data.training.TrainingModeStore
 import com.example.poswarnus.data.transaction.SaleSnapshot
 import com.example.poswarnus.data.transaction.TransactionRepository
 import com.example.poswarnus.ui.cart.CartLine
@@ -34,6 +35,8 @@ sealed interface PaymentUiState {
         val canConfirm: Boolean,
         val isSaving: Boolean,
         val error: Boolean,
+        /** Frozen when the screen opened; a training sale is never saved. */
+        val isTraining: Boolean = false,
     ) : PaymentUiState
 
     data class Success(
@@ -41,6 +44,7 @@ sealed interface PaymentUiState {
         val lines: List<CartLine>,
         val cash: Long,
         val change: Long,
+        val isTraining: Boolean = false,
     ) : PaymentUiState
 }
 
@@ -50,9 +54,10 @@ class PaymentViewModel @Inject constructor(
     private val taxRepository: TaxRepository,
     private val transactionRepository: TransactionRepository,
     private val authRepository: AuthRepository,
+    private val trainingMode: TrainingModeStore,
 ) : ViewModel() {
     /** What the dialog froze when it opened; a retry after a failed save reuses [id]. */
-    private data class Frozen(val id: String, val createdAt: Long, val lines: List<CartLine>, val totals: OrderTotals)
+    private data class Frozen(val id: String, val createdAt: Long, val lines: List<CartLine>, val totals: OrderTotals, val isTraining: Boolean)
 
     private val _uiState = MutableStateFlow<PaymentUiState>(PaymentUiState.Closed)
     val uiState: StateFlow<PaymentUiState> = _uiState.asStateFlow()
@@ -68,8 +73,9 @@ class PaymentViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val totals = OrderTotals.of(lines.sumOf { it.lineTotal }, taxRepository.taxConfig.first())
-                frozen = Frozen(UUID.randomUUID().toString(), System.currentTimeMillis(), lines, totals)
-                _uiState.value = paying(totals, lines, cash = 0, isSaving = false, error = false)
+                val sale = Frozen(UUID.randomUUID().toString(), System.currentTimeMillis(), lines, totals, trainingMode.enabled.value)
+                frozen = sale
+                _uiState.value = paying(totals, lines, cash = 0, isSaving = false, error = false, isTraining = sale.isTraining)
             } finally {
                 opening = false
             }
@@ -93,7 +99,7 @@ class PaymentViewModel @Inject constructor(
     private fun editCash(transform: (Long) -> Long) {
         _uiState.update { current ->
             if (current is PaymentUiState.Paying && !current.isSaving) {
-                paying(current.totals, current.lines, transform(current.cash), isSaving = false, error = false)
+                paying(current.totals, current.lines, transform(current.cash), isSaving = false, error = false, isTraining = current.isTraining)
             } else {
                 current
             }
@@ -111,8 +117,10 @@ class PaymentViewModel @Inject constructor(
         if (previous !is PaymentUiState.Paying || !previous.canConfirm || previous.isSaving) return
         val sale = frozen ?: return
         viewModelScope.launch {
-            val cashierId = authRepository.currentUserId()
-            val result = if (cashierId == null) {
+            val cashierId = if (sale.isTraining) null else authRepository.currentUserId()
+            val result = if (sale.isTraining) {
+                Result.success(Unit)
+            } else if (cashierId == null) {
                 Result.failure(IllegalStateException("No signed-in cashier"))
             } else {
                 transactionRepository.save(
@@ -124,7 +132,7 @@ class PaymentViewModel @Inject constructor(
                 if (current !is PaymentUiState.Paying) {
                     current
                 } else if (result.isSuccess) {
-                    PaymentUiState.Success(sale.totals, sale.lines, previous.cash, previous.cash - sale.totals.grandTotal)
+                    PaymentUiState.Success(sale.totals, sale.lines, previous.cash, previous.cash - sale.totals.grandTotal, sale.isTraining)
                 } else {
                     current.copy(isSaving = false, error = true)
                 }
@@ -151,7 +159,7 @@ class PaymentViewModel @Inject constructor(
         }
     }
 
-    private fun paying(totals: OrderTotals, lines: List<CartLine>, cash: Long, isSaving: Boolean, error: Boolean) =
+    private fun paying(totals: OrderTotals, lines: List<CartLine>, cash: Long, isSaving: Boolean, error: Boolean, isTraining: Boolean) =
         PaymentUiState.Paying(
             totals = totals,
             lines = lines,
@@ -161,5 +169,6 @@ class PaymentViewModel @Inject constructor(
             canConfirm = CashMath.canPay(cash, totals.grandTotal),
             isSaving = isSaving,
             error = error,
+            isTraining = isTraining,
         )
 }

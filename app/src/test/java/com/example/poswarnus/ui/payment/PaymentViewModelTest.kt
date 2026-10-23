@@ -5,6 +5,7 @@ import com.example.poswarnus.data.auth.AuthResult
 import com.example.poswarnus.data.tax.TaxConfig
 import com.example.poswarnus.data.sync.SyncSummary
 import com.example.poswarnus.data.tax.TaxRepository
+import com.example.poswarnus.data.training.TrainingModeStore
 import com.example.poswarnus.data.transaction.SaleSnapshot
 import com.example.poswarnus.data.transaction.TransactionRepository
 import com.example.poswarnus.ui.cart.CartLine
@@ -63,6 +64,7 @@ class PaymentViewModelTest {
     private val tax = FakeTaxRepository()
     private val transactions = FakeTransactionRepository()
     private val auth = FakeAuth()
+    private val trainingStore = TrainingModeStore(cartStore)
 
     @Before
     fun setUp() { Dispatchers.setMain(dispatcher) }
@@ -70,7 +72,7 @@ class PaymentViewModelTest {
     @After
     fun tearDown() { Dispatchers.resetMain() }
 
-    private fun viewModel() = PaymentViewModel(cartStore, tax, transactions, auth)
+    private fun viewModel() = PaymentViewModel(cartStore, tax, transactions, auth, trainingStore)
 
     /** Subtotal 43.000, 10% tax 4.300, grand total 47.300. */
     private fun fillCart() {
@@ -384,5 +386,89 @@ class PaymentViewModelTest {
         val sale = transactions.saved.single().first
         assertEquals(listOf("l1", "l2"), sale.lines.map { it.lineId })
         assertEquals(47300L, sale.totals.grandTotal)
+    }
+
+    @Test
+    fun `training sale reaches Success without saving`() = runTest {
+        trainingStore.enable()
+        fillCart()
+        val vm = viewModel()
+        vm.opened()
+        vm.onExactAmount()
+        vm.confirm()
+        settle()
+        val success = vm.uiState.value as PaymentUiState.Success
+        assertTrue(transactions.saved.isEmpty())
+        assertTrue(success.isTraining)
+        assertEquals(47300L, success.cash)
+        assertEquals(0L, success.change)
+    }
+
+    @Test
+    fun `training Paying state is flagged`() = runTest {
+        trainingStore.enable()
+        fillCart()
+        assertTrue(viewModel().opened().isTraining)
+    }
+
+    @Test
+    fun `enabling training after open does not stop the sale being saved`() = runTest {
+        fillCart()
+        val vm = viewModel()
+        vm.opened()
+        trainingStore.enable()
+        vm.onExactAmount()
+        vm.confirm()
+        settle()
+        assertEquals(1, transactions.saved.size)
+        assertFalse((vm.uiState.value as PaymentUiState.Success).isTraining)
+    }
+
+    @Test
+    fun `disabling training after open still does not save`() = runTest {
+        trainingStore.enable()
+        fillCart()
+        val vm = viewModel()
+        vm.opened()
+        trainingStore.disable()
+        vm.onExactAmount()
+        vm.confirm()
+        settle()
+        assertTrue(transactions.saved.isEmpty())
+        assertTrue((vm.uiState.value as PaymentUiState.Success).isTraining)
+    }
+
+    @Test
+    fun `normal sale after a training sale is saved`() = runTest {
+        trainingStore.enable()
+        fillCart()
+        val vm = viewModel()
+        vm.opened()
+        vm.onExactAmount()
+        vm.confirm()
+        settle()
+        vm.finish()
+        trainingStore.disable()
+        fillCart()
+        vm.opened()
+        vm.onExactAmount()
+        vm.confirm()
+        settle()
+        assertEquals(1, transactions.saved.size)
+        assertFalse((vm.uiState.value as PaymentUiState.Success).isTraining)
+    }
+
+    @Test
+    fun `training confirm does not need a cashier id`() = runTest {
+        trainingStore.enable()
+        fillCart()
+        auth.userId = null
+        val vm = viewModel()
+        vm.opened()
+        vm.onExactAmount()
+        vm.confirm()
+        settle()
+        assertTrue(vm.uiState.value is PaymentUiState.Success)
+        assertTrue(transactions.saved.isEmpty())
     }
 }
