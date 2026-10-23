@@ -16,6 +16,12 @@ interface AuthRepository {
     suspend fun logout()
     suspend fun isLoggedIn(): Boolean
 
+    /**
+     * Makes sure the live Supabase session exists before a sync, restoring the stored one if needed.
+     * Unlike [isLoggedIn] it never clears the stored session when restoring fails (e.g. offline).
+     */
+    suspend fun ensureSessionForSync(): Boolean
+
     /** Id of the signed-in cashier, or null when there is no session. */
     fun currentUserId(): String?
 }
@@ -55,6 +61,20 @@ class AuthRepositoryImpl(
         val isValid = gateway.restoreSession(sessionJson)
         if (isValid) cachedUserId = gateway.currentUserId() else sessionStore.save(null)
         return isValid
+    }
+
+    override suspend fun ensureSessionForSync(): Boolean {
+        if (gateway.currentUserId() != null) return true
+        val sessionJson = sessionStore.load() ?: return false
+        val restored = try {
+            gateway.restoreSession(sessionJson)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+        if (restored) cachedUserId = gateway.currentUserId()
+        return restored
     }
 
     // supabase-kt reports no user once a token refresh fails on a network error, which would block

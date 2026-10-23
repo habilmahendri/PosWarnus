@@ -37,7 +37,9 @@ private class FakeAuthGateway(
 
     override suspend fun restoreSession(sessionJson: String): Boolean {
         restoreSessionCallCount++
-        return restoreSessionResult.getOrThrow()
+        val ok = restoreSessionResult.getOrThrow()
+        if (ok) userId = "user-1"
+        return ok
     }
 
     /** What the live Supabase session would report; null models an expired or failed-refresh session. */
@@ -225,5 +227,58 @@ class AuthRepositoryTest {
 
         assertFalse(repository.isLoggedIn())
         assertEquals(null, sessionStore.current)
+    }
+
+    @Test
+    fun `ensureSessionForSync returns true with a live session without touching the gateway`() = runTest {
+        val gateway = FakeAuthGateway()
+        val repository = AuthRepositoryImpl(gateway, InMemorySessionStore(initial = """{"access_token":"abc"}"""))
+
+        assertTrue(repository.ensureSessionForSync())
+        assertEquals(0, gateway.restoreSessionCallCount)
+    }
+
+    @Test
+    fun `ensureSessionForSync restores from the stored session when the live session is gone`() = runTest {
+        val gateway = FakeAuthGateway()
+        val repository = AuthRepositoryImpl(gateway, InMemorySessionStore())
+        repository.login("kasir@warnus.test", "pw") // fills the cached id
+        gateway.userId = null // live session lost, cache still set
+
+        assertTrue(repository.ensureSessionForSync())
+        assertEquals(1, gateway.restoreSessionCallCount)
+        assertEquals("user-1", repository.currentUserId())
+    }
+
+    @Test
+    fun `ensureSessionForSync does NOT clear the store when restoreSession fails`() = runTest {
+        val gateway = FakeAuthGateway(restoreSessionResult = Result.success(false))
+        gateway.userId = null
+        val store = InMemorySessionStore(initial = """{"access_token":"abc"}""")
+        val repository = AuthRepositoryImpl(gateway, store)
+
+        assertFalse(repository.ensureSessionForSync())
+        assertEquals("""{"access_token":"abc"}""", store.current)
+    }
+
+    @Test
+    fun `ensureSessionForSync does not clear the store when restoreSession throws`() = runTest {
+        val gateway = FakeAuthGateway(restoreSessionResult = Result.failure(RuntimeException("boom")))
+        gateway.userId = null
+        val store = InMemorySessionStore(initial = """{"access_token":"abc"}""")
+        val repository = AuthRepositoryImpl(gateway, store)
+
+        assertFalse(repository.ensureSessionForSync())
+        assertEquals("""{"access_token":"abc"}""", store.current)
+    }
+
+    @Test
+    fun `ensureSessionForSync returns false when nothing is stored`() = runTest {
+        val gateway = FakeAuthGateway()
+        gateway.userId = null
+        val repository = AuthRepositoryImpl(gateway, InMemorySessionStore(initial = null))
+
+        assertFalse(repository.ensureSessionForSync())
+        assertEquals(0, gateway.restoreSessionCallCount)
     }
 }

@@ -30,8 +30,13 @@ class TransactionDaoTest {
     @After
     fun tearDown() { db.close() }
 
-    private fun header(id: String = "t1", isTraining: Boolean = false) = TransactionEntity(
-        id = id, createdAt = 1_000L, cashierId = "u1", subtotal = 43000, taxLabel = "Pajak", taxBasisPoints = 1000,
+    private fun header(
+        id: String = "t1",
+        isTraining: Boolean = false,
+        createdAt: Long = 1_000L,
+        cashierId: String = "u1",
+    ) = TransactionEntity(
+        id = id, createdAt = createdAt, cashierId = cashierId, subtotal = 43000, taxLabel = "Pajak", taxBasisPoints = 1000,
         taxAmount = 4300, grandTotal = 47300, cashReceived = 50000, changeAmount = 2700, isTraining = isTraining,
     )
 
@@ -77,5 +82,104 @@ class TransactionDaoTest {
         taxDao.replace(TaxSettingsEntity(label = "Pajak", basisPoints = 1000))
         taxDao.replace(TaxSettingsEntity(label = "Service", basisPoints = 750))
         assertEquals(TaxSettingsEntity(1, "Service", 750), taxDao.observe().first())
+    }
+
+    private suspend fun seedPendingOrdering() {
+        dao.insertSale(header("a", createdAt = 2), emptyList())
+        dao.insertSale(header("b", createdAt = 1), emptyList())
+        dao.insertSale(header("c", createdAt = 1), emptyList())
+        dao.insertSale(header("d", createdAt = 1, cashierId = "u2"), emptyList())
+        dao.insertSale(header("e", createdAt = 1, isTraining = true), emptyList())
+        dao.insertSale(header("f", createdAt = 1), emptyList())
+        dao.markSynced("f", 9_000)
+    }
+
+    private suspend fun row(id: String) = dao.observeAll().first().single { it.id == id }
+
+    @Test
+    fun `pendingBatch returns only PENDING non-training rows of the cashier ordered by createdAt then id`() = runTest {
+        seedPendingOrdering()
+        assertEquals(listOf("b", "c", "a"), dao.pendingBatch("u1", Long.MIN_VALUE, "", 10).map { it.id })
+    }
+
+    @Test
+    fun `pendingBatch keyset cursor skips rows up to and including the cursor`() = runTest {
+        seedPendingOrdering()
+        assertEquals(listOf("c", "a"), dao.pendingBatch("u1", 1, "b", 10).map { it.id })
+    }
+
+    @Test
+    fun `pendingBatch honours limit`() = runTest {
+        seedPendingOrdering()
+        assertEquals(listOf("b", "c"), dao.pendingBatch("u1", Long.MIN_VALUE, "", 2).map { it.id })
+    }
+
+    @Test
+    fun `markSynced sets status and time and clears the error`() = runTest {
+        dao.insertSale(header("x"), emptyList())
+        dao.recordFailure("x", "offline: IOException")
+        dao.markSynced("x", 5_000)
+        val r = row("x")
+        assertEquals("SYNCED", r.syncStatus)
+        assertEquals(5_000L, r.syncedAt)
+        assertNull(r.lastSyncError)
+    }
+
+    @Test
+    fun `recordFailure increments attempts and stores the error`() = runTest {
+        dao.insertSale(header("x"), emptyList())
+        dao.recordFailure("x", "offline: IOException")
+        dao.recordFailure("x", "rejected: RestException")
+        val r = row("x")
+        assertEquals(2, r.syncAttempts)
+        assertEquals("rejected: RestException", r.lastSyncError)
+        assertEquals("PENDING", r.syncStatus)
+    }
+
+    @Test
+    fun `observeSyncSummary counts pending and offline rows and returns the latest syncedAt`() = runTest {
+        dao.insertSale(header("p1"), emptyList())
+        dao.recordFailure("p1", "offline: x")
+        dao.insertSale(header("p2"), emptyList())
+        dao.recordFailure("p2", "rejected: y")
+        dao.insertSale(header("p3"), emptyList())
+        dao.insertSale(header("s1"), emptyList())
+        dao.markSynced("s1", 7_000)
+        dao.insertSale(header("s2"), emptyList())
+        dao.markSynced("s2", 3_000)
+        dao.insertSale(header("tr", isTraining = true), emptyList())
+        dao.recordFailure("tr", "offline: z")
+        assertEquals(SyncSummaryRow(3, 1, 7_000L), dao.observeSyncSummary("u1").first())
+    }
+
+    @Test
+    fun `observeSyncSummary on an empty table gives zeros and null`() = runTest {
+        assertEquals(SyncSummaryRow(0, 0, null), dao.observeSyncSummary("u1").first())
+    }
+
+    @Test
+    fun `observeSyncSummary counts only the given cashier and gives zeros to one without rows`() = runTest {
+        dao.insertSale(header("a1", cashierId = "uA"), emptyList())
+        dao.recordFailure("a1", "offline: x")
+        dao.insertSale(header("a2", cashierId = "uA"), emptyList())
+        dao.markSynced("a2", 4_000)
+        dao.insertSale(header("b1", cashierId = "uB"), emptyList())
+        dao.insertSale(header("b2", cashierId = "uB"), emptyList())
+        dao.markSynced("b2", 8_000)
+        dao.insertSale(header("trA", cashierId = "uA", isTraining = true), emptyList())
+        dao.recordFailure("trA", "offline: z")
+        assertEquals(SyncSummaryRow(1, 1, 4_000L), dao.observeSyncSummary("uA").first())
+        assertEquals(SyncSummaryRow(1, 0, 8_000L), dao.observeSyncSummary("uB").first())
+        assertEquals(SyncSummaryRow(0, 0, null), dao.observeSyncSummary("uC").first())
+    }
+
+    @Test
+    fun `new rows default to PENDING with zero attempts`() = runTest {
+        dao.insertSale(header(), listOf(line("t1:0")))
+        val r = row("t1")
+        assertEquals("PENDING", r.syncStatus)
+        assertEquals(0, r.syncAttempts)
+        assertNull(r.syncedAt)
+        assertNull(r.lastSyncError)
     }
 }

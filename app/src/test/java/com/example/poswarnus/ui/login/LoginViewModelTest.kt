@@ -32,6 +32,7 @@ private class FakeAuthRepository(
 
     override suspend fun logout() {}
     override suspend fun isLoggedIn(): Boolean = isLoggedInResult
+    override suspend fun ensureSessionForSync(): Boolean = true
     override fun currentUserId(): String? = "user-1"
 }
 
