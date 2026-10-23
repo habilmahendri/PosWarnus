@@ -8,6 +8,7 @@ import com.example.poswarnus.data.catalog.MenuItem
 import com.example.poswarnus.data.catalog.RefreshResult
 import com.example.poswarnus.data.sync.SyncScheduler
 import com.example.poswarnus.data.tax.TaxRepository
+import com.example.poswarnus.data.transaction.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +27,7 @@ data class DashboardUiState(
     val loadError: Boolean = false,
     val isLoading: Boolean = false,
     val featuredItems: List<MenuItem> = emptyList(),
+    val syncPill: SyncPill = SyncPill.None,
 )
 
 @HiltViewModel
@@ -33,6 +35,7 @@ class DashboardViewModel @Inject constructor(
     private val repository: CatalogRepository,
     private val taxRepository: TaxRepository,
     private val syncScheduler: SyncScheduler,
+    private val transactionRepository: TransactionRepository,
 ) : ViewModel() {
     private val selectedCategoryId = MutableStateFlow<String?>(null)
     private val searchQuery = MutableStateFlow("")
@@ -56,7 +59,8 @@ class DashboardViewModel @Inject constructor(
         val isLoading: Boolean,
     )
 
-    val uiState: StateFlow<DashboardUiState> = combine(
+    // Third step: the pill needs the catalog's offline state (derived below) and the sale summary.
+    private val catalogState = combine(
         combine(repository.categories, repository.menuItems, ::CatalogSnapshot),
         combine(selectedCategoryId, searchQuery, refreshFailed, isLoading, ::FilterAndStatus),
     ) { snapshot, filterAndStatus ->
@@ -76,6 +80,13 @@ class DashboardViewModel @Inject constructor(
             isLoading = loading,
             featuredItems = if (query.isBlank()) items.filter { it.isFeatured && it.isAvailable } else emptyList(),
         )
+    }
+
+    val uiState: StateFlow<DashboardUiState> = combine(
+        catalogState,
+        transactionRepository.syncSummary,
+    ) { state, summary ->
+        state.copy(syncPill = syncPillOf(state.isOffline || state.loadError, summary))
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DashboardUiState())
 
     init {

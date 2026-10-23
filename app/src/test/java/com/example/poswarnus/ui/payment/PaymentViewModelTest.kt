@@ -3,6 +3,7 @@ package com.example.poswarnus.ui.payment
 import com.example.poswarnus.data.auth.AuthRepository
 import com.example.poswarnus.data.auth.AuthResult
 import com.example.poswarnus.data.tax.TaxConfig
+import com.example.poswarnus.data.sync.SyncSummary
 import com.example.poswarnus.data.tax.TaxRepository
 import com.example.poswarnus.data.transaction.SaleSnapshot
 import com.example.poswarnus.data.transaction.TransactionRepository
@@ -13,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -34,6 +36,7 @@ private class FakeTransactionRepository : TransactionRepository {
     val saved = mutableListOf<Pair<SaleSnapshot, Long>>()
     var results = ArrayDeque<Result<Unit>>()
     var gate: CompletableDeferred<Unit>? = null
+    override val syncSummary: Flow<SyncSummary> = flowOf(SyncSummary(0, 0, null))
 
     override suspend fun save(sale: SaleSnapshot, cashReceived: Long): Result<Unit> {
         saved += sale to cashReceived

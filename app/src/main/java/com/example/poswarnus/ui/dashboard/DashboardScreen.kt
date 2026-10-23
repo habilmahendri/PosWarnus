@@ -280,13 +280,25 @@ private fun CatalogHeader(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onLogout: () -> Unit,
+    syncPill: SyncPill,
 ) {
     @Composable
     fun Brand(modifier: Modifier = Modifier) {
         BrandMark(background = AccentOrange, foreground = SurfaceWhite, modifier = Modifier.size(32.dp))
         Column(modifier = modifier) {
-            Text(text = "Warung Nusantara", style = MaterialTheme.typography.bodyLarge)
-            Text(text = "RestoPOS", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            Text(
+                text = "Warung Nusantara",
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "RestoPOS",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 
@@ -318,6 +330,7 @@ private fun CatalogHeader(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Brand(modifier = Modifier.weight(1f))
+                    SyncStatusPill(pill = syncPill)
                     LogoutButton()
                 }
                 CatalogSearchField(
@@ -338,6 +351,7 @@ private fun CatalogHeader(
             ) {
                 Brand(modifier = Modifier.weight(1f, fill = false))
                 Spacer(modifier = Modifier.weight(1f))
+                SyncStatusPill(pill = syncPill)
                 CatalogSearchField(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
@@ -377,6 +391,7 @@ private fun CatalogPane(
                 searchQuery = state.searchQuery,
                 onSearchQueryChange = onSearchQueryChanged,
                 onLogout = onLogout,
+                syncPill = state.syncPill,
             )
         }
 

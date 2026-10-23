@@ -8,7 +8,10 @@ import com.example.poswarnus.data.catalog.OptionGroup
 import com.example.poswarnus.data.catalog.RefreshResult
 import com.example.poswarnus.data.sync.FakeSyncScheduler
 import com.example.poswarnus.data.tax.TaxConfig
+import com.example.poswarnus.data.sync.SyncSummary
 import com.example.poswarnus.data.tax.TaxRepository
+import com.example.poswarnus.data.transaction.SaleSnapshot
+import com.example.poswarnus.data.transaction.TransactionRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,6 +55,13 @@ private class FakeTaxRepository : TaxRepository {
     override suspend fun refresh() { refreshCount++ }
 }
 
+private class FakeSummaryTransactionRepository : TransactionRepository {
+    val summary = MutableStateFlow(SyncSummary(0, 0, null))
+    override val syncSummary: Flow<SyncSummary> = summary
+
+    override suspend fun save(sale: SaleSnapshot, cashReceived: Long): Result<Unit> = Result.success(Unit)
+}
+
 private val makanan = Category("a", "Makanan", 1)
 private val minuman = Category("b", "Minuman", 2)
 private val nasiGoreng = MenuItem("1", "a", "Nasi Goreng", 25000.0, null, true)
@@ -72,8 +82,10 @@ class DashboardViewModelTest {
 
     private val syncScheduler = FakeSyncScheduler()
 
+    private val transactions = FakeSummaryTransactionRepository()
+
     private fun viewModel(repository: FakeCatalogRepository, scheduler: FakeSyncScheduler = syncScheduler) =
-        DashboardViewModel(repository, taxRepository, scheduler).also {
+        DashboardViewModel(repository, taxRepository, scheduler, transactions).also {
             dispatcher.scheduler.advanceUntilIdle()
         }
 
@@ -205,6 +217,50 @@ class DashboardViewModelTest {
         assertEquals(false, viewModel.uiState.value.loadError)
         assertEquals(true, viewModel.uiState.value.isOffline)
         assertEquals(listOf(nasiGoreng), viewModel.uiState.value.visibleItems)
+    }
+
+    @Test
+    fun `syncPill follows the summary flow`() = runTest {
+        val viewModel = viewModel(FakeCatalogRepository())
+        assertEquals(SyncPill.None, viewModel.uiState.value.syncPill)
+
+        transactions.summary.value = SyncSummary(2, 0, null)
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(SyncPill.Pending(2), viewModel.uiState.value.syncPill)
+
+        transactions.summary.value = SyncSummary(0, 0, 1000L)
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(SyncPill.Synced(1000L), viewModel.uiState.value.syncPill)
+    }
+
+    @Test
+    fun `syncPill is Offline when the catalog refresh failed with a cache`() = runTest {
+        val repository = FakeCatalogRepository(refreshResult = RefreshResult.Failure("network down"))
+        repository.menuItemsFlow.value = listOf(nasiGoreng)
+        val viewModel = viewModel(repository)
+        transactions.summary.value = SyncSummary(3, 0, null)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(SyncPill.Offline(3), viewModel.uiState.value.syncPill)
+    }
+
+    @Test
+    fun `syncPill is Offline when the catalog refresh failed with no cache`() = runTest {
+        val repository = FakeCatalogRepository(refreshResult = RefreshResult.Failure("network down"))
+        val viewModel = viewModel(repository)
+
+        assertEquals(true, viewModel.uiState.value.loadError)
+        assertEquals(SyncPill.Offline(0), viewModel.uiState.value.syncPill)
+    }
+
+    @Test
+    fun `offlineCount makes the pill Offline even when the catalog loaded`() = runTest {
+        val viewModel = viewModel(FakeCatalogRepository())
+        transactions.summary.value = SyncSummary(5, 1, null)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.isOffline)
+        assertEquals(SyncPill.Offline(5), viewModel.uiState.value.syncPill)
     }
 
     @Test

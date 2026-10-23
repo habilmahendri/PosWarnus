@@ -4,9 +4,12 @@ import com.example.poswarnus.data.local.TransactionDao
 import com.example.poswarnus.data.local.TransactionEntity
 import com.example.poswarnus.data.local.TransactionLineEntity
 import com.example.poswarnus.data.sync.SyncScheduler
+import com.example.poswarnus.data.sync.SyncSummary
 import com.example.poswarnus.ui.cart.CartLine
 import com.example.poswarnus.ui.cart.OrderTotals
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /** Everything a sale needs, frozen when the payment dialog opened. [id] is reused on retry. */
 data class SaleSnapshot(
@@ -20,12 +23,18 @@ data class SaleSnapshot(
 interface TransactionRepository {
     /** Writes the sale locally. Saving an id that is already stored succeeds without writing again. */
     suspend fun save(sale: SaleSnapshot, cashReceived: Long): Result<Unit>
+
+    /** Live counts behind the sync pill (training sales excluded). */
+    val syncSummary: Flow<SyncSummary>
 }
 
 class TransactionRepositoryImpl(
     private val dao: TransactionDao,
     private val syncScheduler: SyncScheduler,
 ) : TransactionRepository {
+    override val syncSummary: Flow<SyncSummary>
+        get() = dao.observeSyncSummary().map { SyncSummary(it.pendingCount, it.offlineCount, it.lastSyncedAt) }
+
     override suspend fun save(sale: SaleSnapshot, cashReceived: Long): Result<Unit> =
         try {
             val header = TransactionEntity(
