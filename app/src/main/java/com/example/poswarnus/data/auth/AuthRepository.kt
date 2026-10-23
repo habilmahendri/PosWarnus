@@ -28,6 +28,7 @@ class AuthRepositoryImpl(
         try {
             val sessionJson = gateway.signIn(email, password)
             sessionStore.save(sessionJson)
+            cachedUserId = gateway.currentUserId()
             AuthResult.Success
         } catch (e: CancellationException) {
             throw e
@@ -44,6 +45,7 @@ class AuthRepositoryImpl(
             // Local session state must be cleared even if the remote sign-out call fails (e.g.
             // while offline), otherwise the app would keep treating the user as logged in.
         } finally {
+            cachedUserId = null
             sessionStore.save(null)
         }
     }
@@ -51,11 +53,16 @@ class AuthRepositoryImpl(
     override suspend fun isLoggedIn(): Boolean {
         val sessionJson = sessionStore.load() ?: return false
         val isValid = gateway.restoreSession(sessionJson)
-        if (!isValid) sessionStore.save(null)
+        if (isValid) cachedUserId = gateway.currentUserId() else sessionStore.save(null)
         return isValid
     }
 
-    override fun currentUserId(): String? = gateway.currentUserId()
+    // supabase-kt reports no user once a token refresh fails on a network error, which would block
+    // every offline sale; the id seen at login / session restore stays valid until logout.
+    @Volatile
+    private var cachedUserId: String? = null
+
+    override fun currentUserId(): String? = gateway.currentUserId() ?: cachedUserId
 
     private fun mapLoginError(e: Exception): String = when {
         // Supabase's own rest exceptions (and any RestException in general) embed the request

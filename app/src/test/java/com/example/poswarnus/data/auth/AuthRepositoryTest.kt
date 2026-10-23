@@ -40,7 +40,10 @@ private class FakeAuthGateway(
         return restoreSessionResult.getOrThrow()
     }
 
-    override fun currentUserId(): String? = "user-1"
+    /** What the live Supabase session would report; null models an expired or failed-refresh session. */
+    var userId: String? = "user-1"
+
+    override fun currentUserId(): String? = userId
 }
 
 private suspend fun fakeHttpResponse(statusCode: HttpStatusCode): HttpResponse {
@@ -64,6 +67,40 @@ class AuthRepositoryTest {
 
         assertEquals(AuthResult.Success, result)
         assertEquals("""{"access_token":"abc"}""", sessionStore.current)
+    }
+
+    @Test
+    fun `currentUserId keeps the cashier id after login when the live session is lost offline`() = runTest {
+        val gateway = FakeAuthGateway()
+        val repository = AuthRepositoryImpl(gateway, InMemorySessionStore())
+        repository.login("kasir@warnus.test", "pw")
+
+        gateway.userId = null // token expired and refresh failed on a network error
+
+        assertEquals("user-1", repository.currentUserId())
+    }
+
+    @Test
+    fun `currentUserId keeps the cashier id after a stored session is restored`() = runTest {
+        val gateway = FakeAuthGateway()
+        val repository = AuthRepositoryImpl(gateway, InMemorySessionStore(initial = """{"access_token":"abc"}"""))
+        assertTrue(repository.isLoggedIn())
+
+        gateway.userId = null
+
+        assertEquals("user-1", repository.currentUserId())
+    }
+
+    @Test
+    fun `currentUserId is null after logout even if it was cached`() = runTest {
+        val gateway = FakeAuthGateway()
+        val repository = AuthRepositoryImpl(gateway, InMemorySessionStore())
+        repository.login("kasir@warnus.test", "pw")
+        repository.logout()
+
+        gateway.userId = null
+
+        assertEquals(null, repository.currentUserId())
     }
 
     @Test
