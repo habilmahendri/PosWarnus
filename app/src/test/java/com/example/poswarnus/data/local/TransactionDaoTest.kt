@@ -149,12 +149,28 @@ class TransactionDaoTest {
         dao.markSynced("s2", 3_000)
         dao.insertSale(header("tr", isTraining = true), emptyList())
         dao.recordFailure("tr", "offline: z")
-        assertEquals(SyncSummaryRow(3, 1, 7_000L), dao.observeSyncSummary().first())
+        assertEquals(SyncSummaryRow(3, 1, 7_000L), dao.observeSyncSummary("u1").first())
     }
 
     @Test
     fun `observeSyncSummary on an empty table gives zeros and null`() = runTest {
-        assertEquals(SyncSummaryRow(0, 0, null), dao.observeSyncSummary().first())
+        assertEquals(SyncSummaryRow(0, 0, null), dao.observeSyncSummary("u1").first())
+    }
+
+    @Test
+    fun `observeSyncSummary counts only the given cashier and gives zeros to one without rows`() = runTest {
+        dao.insertSale(header("a1", cashierId = "uA"), emptyList())
+        dao.recordFailure("a1", "offline: x")
+        dao.insertSale(header("a2", cashierId = "uA"), emptyList())
+        dao.markSynced("a2", 4_000)
+        dao.insertSale(header("b1", cashierId = "uB"), emptyList())
+        dao.insertSale(header("b2", cashierId = "uB"), emptyList())
+        dao.markSynced("b2", 8_000)
+        dao.insertSale(header("trA", cashierId = "uA", isTraining = true), emptyList())
+        dao.recordFailure("trA", "offline: z")
+        assertEquals(SyncSummaryRow(1, 1, 4_000L), dao.observeSyncSummary("uA").first())
+        assertEquals(SyncSummaryRow(1, 0, 8_000L), dao.observeSyncSummary("uB").first())
+        assertEquals(SyncSummaryRow(0, 0, null), dao.observeSyncSummary("uC").first())
     }
 
     @Test

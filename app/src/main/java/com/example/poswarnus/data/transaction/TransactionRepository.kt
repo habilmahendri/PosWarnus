@@ -31,9 +31,12 @@ interface TransactionRepository {
 class TransactionRepositoryImpl(
     private val dao: TransactionDao,
     private val syncScheduler: SyncScheduler,
+    private val currentCashierId: () -> String?,
 ) : TransactionRepository {
+    // The getter reads the cashier id each time it is accessed. DashboardViewModel is created per dashboard
+    // session after login, so the id is already the signed-in cashier's when it collects this flow.
     override val syncSummary: Flow<SyncSummary>
-        get() = dao.observeSyncSummary().map { SyncSummary(it.pendingCount, it.offlineCount, it.lastSyncedAt) }
+        get() = dao.observeSyncSummary(currentCashierId() ?: "").map { SyncSummary(it.pendingCount, it.offlineCount, it.lastSyncedAt) }
 
     override suspend fun save(sale: SaleSnapshot, cashReceived: Long): Result<Unit> =
         try {

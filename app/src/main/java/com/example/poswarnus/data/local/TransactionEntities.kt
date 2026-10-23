@@ -100,7 +100,7 @@ abstract class TransactionDao {
             COALESCE(SUM(CASE WHEN syncStatus = 'PENDING' THEN 1 ELSE 0 END), 0) AS pendingCount,
             COALESCE(SUM(CASE WHEN syncStatus = 'PENDING' AND lastSyncError LIKE 'offline:%' THEN 1 ELSE 0 END), 0) AS offlineCount,
             MAX(syncedAt) AS lastSyncedAt
-          FROM transactions WHERE isTraining = 0""",
+          FROM transactions WHERE isTraining = 0 AND cashierId = :cashierId""",
     )
-    abstract fun observeSyncSummary(): Flow<SyncSummaryRow>
+    abstract fun observeSyncSummary(cashierId: String): Flow<SyncSummaryRow>
 }
