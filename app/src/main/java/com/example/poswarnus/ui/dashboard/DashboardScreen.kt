@@ -71,6 +71,8 @@ import com.example.poswarnus.ui.cart.CartPanel
 import com.example.poswarnus.ui.cart.CartStore
 import com.example.poswarnus.ui.cart.CartViewModel
 import com.example.poswarnus.ui.cart.MenuDetailDialog
+import com.example.poswarnus.ui.payment.PaymentDialog
+import com.example.poswarnus.ui.payment.PaymentViewModel
 import com.example.poswarnus.ui.components.BrandMark
 import com.example.poswarnus.ui.components.CloseGlyph
 import com.example.poswarnus.ui.components.SearchGlyph
@@ -112,13 +114,14 @@ private val GridBottomPadding = 16.dp
 @Composable
 fun DashboardScreen(
     onLoggedOut: () -> Unit,
-    onCheckout: () -> Unit = {},
     dashboardViewModel: DashboardViewModel = hiltViewModel(),
     logoutViewModel: LogoutViewModel = hiltViewModel(),
     cartViewModel: CartViewModel = hiltViewModel(),
+    paymentViewModel: PaymentViewModel = hiltViewModel(),
 ) {
     val state by dashboardViewModel.uiState.collectAsState()
     val cartState by cartViewModel.uiState.collectAsState()
+    val paymentState by paymentViewModel.uiState.collectAsState()
     val hasLines = cartState.lines.isNotEmpty()
     var showCartSheet by rememberSaveable { mutableStateOf(false) }
 
@@ -143,7 +146,11 @@ fun DashboardScreen(
                 onRequestClear = cartViewModel::requestClearAll,
                 onConfirmClear = cartViewModel::confirmClearAll,
                 onCancelClear = cartViewModel::cancelClearAll,
-                onCheckout = onCheckout,
+                onCheckout = {
+                    // Close the phone sheet first so the payment window is not stacked on it.
+                    showCartSheet = false
+                    paymentViewModel.open()
+                },
                 modifier = panelModifier,
             )
         }
@@ -206,6 +213,16 @@ fun DashboardScreen(
                 onDismiss = cartViewModel::dismissDialog,
             )
         }
+
+        PaymentDialog(
+            state = paymentState,
+            onCashInput = paymentViewModel::onCashInput,
+            onQuickAmount = paymentViewModel::onQuickAmount,
+            onExact = paymentViewModel::onExactAmount,
+            onConfirm = paymentViewModel::confirm,
+            onDismiss = paymentViewModel::dismiss,
+            onFinish = paymentViewModel::finish,
+        )
     }
 }
 
