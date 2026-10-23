@@ -54,6 +54,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.poswarnus.data.auth.AuthRepository
+import com.example.poswarnus.ui.cart.CartStore
 import com.example.poswarnus.ui.components.BrandMark
 import com.example.poswarnus.ui.components.CloseGlyph
 import com.example.poswarnus.ui.components.EmptyCartGlyph
@@ -70,10 +71,15 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class LogoutViewModel @Inject constructor(private val authRepository: AuthRepository) : ViewModel() {
+class LogoutViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val cartStore: CartStore,
+) : ViewModel() {
     fun logout(onLoggedOut: () -> Unit) {
         viewModelScope.launch {
             authRepository.logout()
+            // One cashier's order must never leak into the next session.
+            cartStore.clear()
             onLoggedOut()
         }
     }
