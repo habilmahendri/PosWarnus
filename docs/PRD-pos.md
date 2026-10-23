@@ -53,6 +53,7 @@ Catalog shows each menu item as a card with **image, name, price**. Items can be
 - A menu item flagged out-of-stock (from Supabase) is visually distinguished (e.g., dimmed/badge) and cannot be added to the cart.
 - Empty search/category result shows an explicit empty state, not a blank screen.
 - On phone layout, the cart is reachable from the Dashboard without navigating away from the catalog (bottom sheet/tab), and shows the current item count/total as a persistent indicator.
+- Admin-featured items are surfaced in a dedicated row above the grid (see 4.12).
 
 ### 4.4 Menu Detail Dialog (Modifier, Variant, Quantity)
 
@@ -137,6 +138,19 @@ A simple screen, separate from the admin website, listing transactions made from
 - Tapping a transaction shows its line-item detail (items, modifiers/variants, quantities, subtotal, tax, grand total, cash received, change).
 - Includes transactions still pending sync (per 4.9), visually marked as "pending sync" until confirmed synced.
 - Does not include editing, refund, or void actions (see Non-Goals).
+
+### 4.12 Featured Menu (Admin-Curated Recommendations)
+
+A lightweight recommendation feature to nudge sales toward the menu items the outlet wants to push. The admin marks items as featured on the admin website; this app only reads the flag and surfaces those items prominently in the catalog. No sales-history analysis is involved (data-driven recommendations such as "frequently bought together" are a possible later enhancement and out of scope here).
+
+**Acceptance criteria**
+- Each menu item in Supabase has a boolean `is_featured` flag (default `false`), set only by the admin website; this app never writes it.
+- The Dashboard catalog (4.3) shows a "Menu Unggulan" row above the main grid, listing all available featured items; the row is hidden entirely when no featured items exist.
+- Featured items still appear in the main grid under their normal category; the row is an additional shortcut, not a move.
+- Tapping a featured item behaves exactly like tapping it in the main grid (opens the Menu Detail Dialog, 4.4).
+- Featured items follow the same availability rules as the rest of the catalog: an out-of-stock featured item is excluded from the row (or dimmed and not tappable) and cannot be added to the cart.
+- The row respects the active search query; while a search is active it is hidden, so results come only from the main grid. Selecting a category does not hide the row.
+- The `is_featured` flag is cached locally with the rest of the catalog (4.9) and served from cache when offline.
 
 ## 5. Non-Goals
 
