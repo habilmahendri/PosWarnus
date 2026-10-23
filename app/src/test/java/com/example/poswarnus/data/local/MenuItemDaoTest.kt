@@ -39,6 +39,16 @@ class MenuItemDaoTest {
     }
 
     @Test
+    fun `isFeatured round-trips through the dao`() = runTest {
+        val featured = MenuItemEntity(id = "1", categoryId = "a", name = "A", price = 1.0, imageUrl = null, isAvailable = true, isFeatured = true)
+        val plain = MenuItemEntity(id = "2", categoryId = "a", name = "B", price = 2.0, imageUrl = null, isAvailable = true)
+        dao.upsertAll(listOf(featured, plain))
+        val byId = dao.observeAll().first().associateBy { it.id }
+        assertEquals(true, byId.getValue("1").isFeatured)
+        assertEquals(false, byId.getValue("2").isFeatured)
+    }
+
+    @Test
     fun `upsertAll replaces an existing row with the same id`() = runTest {
         dao.upsertAll(listOf(MenuItemEntity(id = "1", categoryId = "a", name = "Old", price = 1.0, imageUrl = null, isAvailable = true)))
         dao.upsertAll(listOf(MenuItemEntity(id = "1", categoryId = "a", name = "New", price = 2.0, imageUrl = null, isAvailable = false)))

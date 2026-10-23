@@ -8,7 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [CategoryEntity::class, MenuItemEntity::class, OptionGroupEntity::class, OptionEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,6 +32,13 @@ val MIGRATION_1_2: Migration = object : Migration(1, 2) {
                 "priceDelta INTEGER NOT NULL, sortOrder INTEGER NOT NULL, isAvailable INTEGER NOT NULL, PRIMARY KEY(id))",
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS index_options_groupId ON options (groupId)")
+    }
+}
+
+/** v2 -> v3: admin-curated featured flag on menu items. Existing rows default to not featured. */
+val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE menu_items ADD COLUMN isFeatured INTEGER NOT NULL DEFAULT 0")
     }
 }
 
