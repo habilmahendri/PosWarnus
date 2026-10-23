@@ -166,6 +166,21 @@ A practice mode that lets a new cashier (or someone giving a demo) run the entir
 - Training history is not kept: there is no way to review past practice runs (see Non-Goals).
 - The training flag is part of the in-memory/transaction model from the start of Phase 4, so the payment and sync layers can skip persistence without a later retrofit.
 
+### 4.14 Frequently Bought Together Suggestions
+
+A small, ignorable suggestion in the cart that nudges the cashier toward items customers usually order together with what is already in the cart (e.g. "Es Teh Manis" with "Nasi Goreng Spesial"). It is computed on the device from this device's own completed transactions; no server, admin input or machine learning is involved. It depends on stored transactions, so it ships after payment and local transaction storage (4.7, 4.9).
+
+**Acceptance criteria**
+- The cart (4.5) shows a "Sering dibeli bareng" row with 1–3 suggestion cards (name, price, add button) below the line items, only when at least one suggestion qualifies; otherwise nothing is shown.
+- A suggestion is derived from how often two menu items appear in the same completed transaction: for a trigger item already in the cart, a candidate qualifies when the trigger appears in at least 20 completed transactions and the candidate appears alongside it in at least 30% of them. Both thresholds are named constants so they can be tuned without redesign.
+- Candidates are ranked by that share (highest first); the top 3 that are not already in the cart and are currently available are shown. With several items in the cart, a candidate's rank is its best share over the cart's trigger items.
+- Tapping a suggestion's add button behaves exactly like tapping that item in the catalog (opens the Menu Detail Dialog (4.4) when the item has required options, otherwise adds it with quantity 1). It never changes the cart on its own and never changes totals until the cashier acts.
+- The row can be dismissed for the current order and does not block checkout or any other control.
+- Only completed, non-training transactions on this device are counted (training sales, 4.13, are excluded). Items that no longer exist in the catalog are ignored.
+- Suggestions are computed from local data and cached; they work offline, and are refreshed when the app starts and after every 50 newly completed transactions.
+- With too little history (no trigger item meets the thresholds) the feature stays silent, with no placeholder or empty state.
+- The suggestion row appears in the cart only, not inside the Menu Detail Dialog.
+
 ## 5. Non-Goals
 
 Explicitly out of scope for this PRD:
@@ -178,6 +193,7 @@ Explicitly out of scope for this PRD:
 - **Cross-device/cross-outlet sales reporting or analytics** — the in-app history (4.11) is local-to-device and transaction-level only; aggregate reporting lives on the admin website.
 - **Self-registration / account management UI** inside this app (sign-up, password reset flows) — accounts are provisioned externally.
 - **Training-run history or scoring.** Training mode (4.13) discards its sales; reviewing or grading past practice runs is out of scope.
+- **Machine-learning, seasonal or cross-device recommendation models, and admin-curated suggestion pairs.** Suggestions (4.14) are a simple per-device co-occurrence count; an admin-managed fallback for the cold-start period is a possible later enhancement, not part of this PRD.
 
 ## 6. Key Risks / Trade-offs Called Out
 
