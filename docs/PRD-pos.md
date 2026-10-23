@@ -152,6 +152,20 @@ A lightweight recommendation feature to nudge sales toward the menu items the ou
 - The row respects the active search query; while a search is active it is hidden, so results come only from the main grid. Selecting a category does not hide the row.
 - The `is_featured` flag is cached locally with the rest of the catalog (4.9) and served from cache when offline.
 
+### 4.13 Training Mode
+
+A practice mode that lets a new cashier (or someone giving a demo) run the entire ordering flow end to end without creating real transactions. Catalog, categories and modifiers/variants are the live data, so practice matches what the cashier will actually see; only the outcome is discarded.
+
+**Acceptance criteria**
+- Settings has a "Mode Pelatihan" toggle. Turning it on asks for confirmation first; turning it off clears the current cart.
+- While active, a persistent, high-contrast banner ("MODE PELATIHAN – transaksi tidak disimpan") is visible on every screen from Dashboard through Payment Success, so it cannot be mistaken for a real sale.
+- The whole flow works exactly as in normal mode: browse, Menu Detail Dialog (4.4), cart (4.5), tax/service charge (4.6), cash payment with change (4.7) and the success state (4.8).
+- Completing a payment in training mode does NOT write a transaction record, does NOT enter the sync queue (4.9), and never reaches Supabase. Training sales never appear in Transaction History (4.11) or in any end-of-shift totals.
+- A receipt printed in training mode (4.10) is clearly marked "LATIHAN – BUKAN TRANSAKSI" so it cannot be confused with a real receipt.
+- Training mode is switched off automatically on logout and on a cold app start, so a cashier never serves a real customer in it by accident.
+- Training history is not kept: there is no way to review past practice runs (see Non-Goals).
+- The training flag is part of the in-memory/transaction model from the start of Phase 4, so the payment and sync layers can skip persistence without a later retrofit.
+
 ## 5. Non-Goals
 
 Explicitly out of scope for this PRD:
@@ -163,6 +177,7 @@ Explicitly out of scope for this PRD:
 - **Non-cash payment methods** (card, QR/e-wallet, split payment) — cash only for this PRD.
 - **Cross-device/cross-outlet sales reporting or analytics** — the in-app history (4.11) is local-to-device and transaction-level only; aggregate reporting lives on the admin website.
 - **Self-registration / account management UI** inside this app (sign-up, password reset flows) — accounts are provisioned externally.
+- **Training-run history or scoring.** Training mode (4.13) discards its sales; reviewing or grading past practice runs is out of scope.
 
 ## 6. Key Risks / Trade-offs Called Out
 
