@@ -12,7 +12,8 @@ Status as of 2026-10-23. Source of truth for scope is [PRD-pos.md](PRD-pos.md); 
 | 3b | Featured Menu row + polish of Phases 1-3 (see below) | 4.12 | Done (merged to `main`; `is_featured` applied to the live Supabase and verified on the tablet emulator) |
 | 4 | Tax/service charge, cash Payment, Payment Success, local transaction storage (UUID, `isTraining` flag from day one), "Bayar" goes live | 4.6, 4.7, 4.8, part of 4.9 | Done (merged to `main` locally, not pushed); `tax_settings` applied to the live Supabase and verified on the tablet emulator |
 | 5 | Offline sync engine: send queue, idempotent upsert, offline / last-synced indicator, transactions tables in Supabase | rest of 4.9 | Done (merged to `main` locally, not pushed); `20261024000000_add_transactions_sync.sql` and its fix `20261024100000_fix_submit_transaction_security_definer.sql` applied to the live Supabase on 2026-10-24; uploads verified end to end on the tablet emulator and on the server |
-| 6 | Settings screen, Bluetooth receipt printing, Training Mode toggle + "LATIHAN" receipt marker | 4.10, 4.13 | Planned |
+| 6a | Settings screen + Training Mode (toggle, banner, no persistence or sync while on) | 4.13, Settings part of 4.10 | Done on branch `worktree-phase6a-training-mode` (not merged, not pushed); verified on the tablet emulator and at phone size |
+| 6b | Bluetooth receipt printing, "LATIHAN" receipt marker, "Cetak struk" goes live | rest of 4.10, receipt part of 4.13 | Planned (own spec) |
 | 7 | Transaction History (incl. "pending sync") | 4.11 | Planned |
 | 8 | "Frequently bought together" suggestions in the cart | 4.14 | Planned |
 
@@ -108,6 +109,18 @@ PRD: rest of 4.9.
 - "Can't load catalog, check connection" state for a fresh install that's never populated the cache (catalog half of 4.9, if not already covered by Phase 2's caching).
 - New Supabase tables for transactions/lines: needs an owner-action migration step, same pattern as 3b's `is_featured` migration.
 - No UI change to the Payment dialog itself — sync happens behind what Phase 4 already built.
+
+## Phase 6a status (2026-10-24)
+
+Spec: `docs/superpowers/specs/2026-10-24-settings-training-mode-design.md`; plan: `docs/superpowers/plans/2026-10-24-pos-settings-training-mode.md`. Decisions: enabling Training Mode empties the cart (disabling does too, per PRD); the flag lives only in memory so a cold start is off; Settings is a new route opened from a gear in the catalog header.
+
+Implemented on the branch: `TrainingModeStore` (reset on logout, on login and when a stored session is restored), `PaymentViewModel` freezing the flag at `open()` and skipping the cashier lookup and `TransactionRepository.save` entirely for training sales, `SettingsScreen` with a confirm dialog on enabling, `TrainingBanner` (amber, 9:1 contrast) on Dashboard, Settings and the payment screens. No Room, WorkManager or Supabase change. Every task had a Sonnet implementer and a Sonnet reviewer; the whole-branch review found one Important (the flag survived back-exit plus relaunch because the restored-session path never reset it), fixed with a test.
+
+Verified on the tablet emulator (live Supabase): gear and Settings screen; cancel leaves the switch off; "Nyalakan" turns it on, empties the cart and shows the banner on Settings and Dashboard (status-bar strip included); a training payment (Rp7.700 paid Rp10.000, change Rp2.300) reached Success with the banner while the local `transactions` table stayed at 14 rows (0 pending, 0 training) and the server stayed at 14; the sync pill did not change; "Selesai" empties the cart and training stays on; Back-exit then relaunch from the launcher (process kept alive) comes back with training off; force-stop then cold start comes back off; a normal sale afterwards was stored, synced and reached the server (15 rows, `grand_total` 7700). Phone size (1080x2400): header with the gear fits without ellipsis, banner, cart bar, cart sheet and the single-column payment screen with the banner all fit.
+
+NOT verified: logout resetting the flag on a device (covered by a unit test only); TalkBack; a physical device; large font scale on the banner.
+
+Deferred minors: the status-bar strip above the banner stays cream on Settings (amber on Dashboard); the 14sp banner may ellipsize at large font scale; unindented `Column` wraps in `DashboardScreen` and `SuccessScreen`; import order nits.
 
 ## Phase 6 contents (Settings, Bluetooth receipt printing, Training Mode)
 
