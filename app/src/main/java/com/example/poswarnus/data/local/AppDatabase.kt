@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CategoryEntity::class, MenuItemEntity::class, OptionGroupEntity::class, OptionEntity::class,
         TaxSettingsEntity::class, TransactionEntity::class, TransactionLineEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -63,6 +63,17 @@ val MIGRATION_3_4: Migration = object : Migration(3, 4) {
                 "PRIMARY KEY(`id`), FOREIGN KEY(`transactionId`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_lines_transactionId` ON `transaction_lines` (`transactionId`)")
+    }
+}
+
+/** v4 -> v5: upload bookkeeping on sales. Existing sales were never uploaded, so they default to PENDING. */
+val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `transactions` ADD COLUMN `syncStatus` TEXT NOT NULL DEFAULT 'PENDING'")
+        db.execSQL("ALTER TABLE `transactions` ADD COLUMN `syncedAt` INTEGER")
+        db.execSQL("ALTER TABLE `transactions` ADD COLUMN `syncAttempts` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `transactions` ADD COLUMN `lastSyncError` TEXT")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_syncStatus` ON `transactions` (`syncStatus`)")
     }
 }
 

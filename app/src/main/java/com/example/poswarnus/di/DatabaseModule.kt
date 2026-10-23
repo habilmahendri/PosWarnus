@@ -8,6 +8,7 @@ import com.example.poswarnus.data.local.CategoryDao
 import com.example.poswarnus.data.local.MIGRATION_1_2
 import com.example.poswarnus.data.local.MIGRATION_2_3
 import com.example.poswarnus.data.local.MIGRATION_3_4
+import com.example.poswarnus.data.local.MIGRATION_4_5
 import com.example.poswarnus.data.local.TaxSettingsDao
 import com.example.poswarnus.data.local.TransactionDao
 import com.example.poswarnus.data.local.MenuItemDao
@@ -28,7 +29,7 @@ object DatabaseModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "pos_warnus.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build()
 
     @Provides

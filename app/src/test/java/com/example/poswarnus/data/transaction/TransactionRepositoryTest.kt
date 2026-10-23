@@ -3,6 +3,7 @@ package com.example.poswarnus.data.transaction
 import androidx.room.Room
 import com.example.poswarnus.data.catalog.OptionKind
 import com.example.poswarnus.data.local.AppDatabase
+import com.example.poswarnus.data.local.SyncSummaryRow
 import com.example.poswarnus.data.local.TransactionDao
 import com.example.poswarnus.data.local.TransactionEntity
 import com.example.poswarnus.data.local.TransactionLineEntity
@@ -96,6 +97,12 @@ class TransactionRepositoryTest {
                 error("disk full")
             override fun observeAll(): Flow<List<TransactionEntity>> = flowOf(emptyList())
             override suspend fun linesFor(transactionId: String): List<TransactionLineEntity> = emptyList()
+            override suspend fun pendingBatch(
+                cashierId: String, afterCreatedAt: Long, afterId: String, limit: Int,
+            ): List<TransactionEntity> = emptyList()
+            override suspend fun markSynced(id: String, at: Long) = Unit
+            override suspend fun recordFailure(id: String, error: String) = Unit
+            override fun observeSyncSummary(): Flow<SyncSummaryRow> = flowOf(SyncSummaryRow(0, 0, null))
         }
         val result = TransactionRepositoryImpl(failing).save(sale, 50000)
         assertTrue(result.isFailure)
