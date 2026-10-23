@@ -9,6 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(
     entities = [CategoryEntity::class, MenuItemEntity::class, OptionGroupEntity::class, OptionEntity::class],
     version = 2,
+    exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
