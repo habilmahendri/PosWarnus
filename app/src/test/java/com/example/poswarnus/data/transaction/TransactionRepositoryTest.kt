@@ -7,6 +7,7 @@ import com.example.poswarnus.data.local.SyncSummaryRow
 import com.example.poswarnus.data.local.TransactionDao
 import com.example.poswarnus.data.local.TransactionEntity
 import com.example.poswarnus.data.local.TransactionLineEntity
+import com.example.poswarnus.data.sync.FakeSyncScheduler
 import com.example.poswarnus.data.tax.TaxConfig
 import com.example.poswarnus.ui.cart.CartLine
 import com.example.poswarnus.ui.cart.OrderTotals
@@ -29,6 +30,7 @@ import org.robolectric.RuntimeEnvironment
 class TransactionRepositoryTest {
     private lateinit var db: AppDatabase
     private lateinit var repository: TransactionRepositoryImpl
+    private val scheduler = FakeSyncScheduler()
 
     private val large = SelectedOption("o1", "g1", "Large", 5000, OptionKind.VARIANT)
     private val lines = listOf(
@@ -42,7 +44,7 @@ class TransactionRepositoryTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), AppDatabase::class.java)
             .allowMainThreadQueries().build()
-        repository = TransactionRepositoryImpl(db.transactionDao())
+        repository = TransactionRepositoryImpl(db.transactionDao(), scheduler)
     }
 
     @After
@@ -90,7 +92,38 @@ class TransactionRepositoryTest {
 
     @Test
     fun `save returns failure when the dao throws`() = runTest {
-        val failing = object : TransactionDao() {
+        val failing = failingDao()
+        val failScheduler = FakeSyncScheduler()
+        val result = TransactionRepositoryImpl(failing, failScheduler).save(sale, 50000)
+        assertTrue(result.isFailure)
+        assertEquals("disk full", result.exceptionOrNull()?.message)
+        assertEquals(0, failScheduler.requestSyncCount)
+    }
+
+    @Test
+    fun `save calls requestSync once after a successful write`() = runTest {
+        assertTrue(repository.save(sale, 50000).isSuccess)
+        assertEquals(1, scheduler.requestSyncCount)
+    }
+
+    @Test
+    fun `a throwing scheduler does not fail save`() = runTest {
+        val throwing = FakeSyncScheduler(failure = IllegalStateException("no workmanager"))
+        val repo = TransactionRepositoryImpl(db.transactionDao(), throwing)
+        assertTrue(repo.save(sale, 50000).isSuccess)
+        assertEquals(1, throwing.requestSyncCount)
+        assertEquals(1, db.transactionDao().observeAll().first().size)
+    }
+
+    @Test
+    fun `saving an existing id still succeeds and schedules`() = runTest {
+        assertTrue(repository.save(sale, 50000).isSuccess)
+        assertTrue(repository.save(sale, 50000).isSuccess)
+        assertEquals(2, scheduler.requestSyncCount)
+    }
+
+    private fun failingDao() = run {
+        object : TransactionDao() {
             override suspend fun insertHeader(header: TransactionEntity): Long = error("disk full")
             override suspend fun insertLines(lines: List<TransactionLineEntity>) = error("disk full")
             override suspend fun insertSale(header: TransactionEntity, lines: List<TransactionLineEntity>): Boolean =
@@ -104,8 +137,5 @@ class TransactionRepositoryTest {
             override suspend fun recordFailure(id: String, error: String) = Unit
             override fun observeSyncSummary(): Flow<SyncSummaryRow> = flowOf(SyncSummaryRow(0, 0, null))
         }
-        val result = TransactionRepositoryImpl(failing).save(sale, 50000)
-        assertTrue(result.isFailure)
-        assertEquals("disk full", result.exceptionOrNull()?.message)
     }
 }

@@ -6,6 +6,7 @@ import com.example.poswarnus.data.catalog.CatalogRepository
 import com.example.poswarnus.data.catalog.MenuItem
 import com.example.poswarnus.data.catalog.OptionGroup
 import com.example.poswarnus.data.catalog.RefreshResult
+import com.example.poswarnus.data.sync.FakeSyncScheduler
 import com.example.poswarnus.data.tax.TaxConfig
 import com.example.poswarnus.data.tax.TaxRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -69,8 +70,46 @@ class DashboardViewModelTest {
 
     private val taxRepository = FakeTaxRepository()
 
-    private fun viewModel(repository: FakeCatalogRepository) = DashboardViewModel(repository, taxRepository).also {
+    private val syncScheduler = FakeSyncScheduler()
+
+    private fun viewModel(repository: FakeCatalogRepository, scheduler: FakeSyncScheduler = syncScheduler) =
+        DashboardViewModel(repository, taxRepository, scheduler).also {
+            dispatcher.scheduler.advanceUntilIdle()
+        }
+
+    @Test
+    fun `refresh calls requestSync on init and on a manual refresh`() = runTest {
+        val viewModel = viewModel(FakeCatalogRepository())
+        assertEquals(1, syncScheduler.requestSyncCount)
+        viewModel.refresh()
         dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(2, syncScheduler.requestSyncCount)
+    }
+
+    @Test
+    fun `a concurrent refresh while one is in flight does not schedule again`() = runTest {
+        val repository = FakeCatalogRepository()
+        val gate = CompletableDeferred<Unit>()
+        repository.refreshGate = gate
+        val viewModel = viewModel(repository)
+        assertEquals(1, syncScheduler.requestSyncCount)
+        viewModel.refresh()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, syncScheduler.requestSyncCount)
+        gate.complete(Unit)
+        dispatcher.scheduler.advanceUntilIdle()
+    }
+
+    @Test
+    fun `a throwing scheduler does not break refresh`() = runTest {
+        val repository = FakeCatalogRepository()
+        repository.menuItemsFlow.value = listOf(nasiGoreng)
+        val throwing = FakeSyncScheduler(failure = IllegalStateException("no workmanager"))
+        val viewModel = viewModel(repository, throwing)
+        assertEquals(1, throwing.requestSyncCount)
+        assertEquals(1, repository.refreshCallCount)
+        assertEquals(listOf(nasiGoreng), viewModel.uiState.value.visibleItems)
+        assertEquals(false, viewModel.uiState.value.isLoading)
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.example.poswarnus.di
 
 import com.example.poswarnus.data.local.TransactionDao
+import com.example.poswarnus.data.sync.SyncScheduler
 import com.example.poswarnus.data.transaction.TransactionRepository
 import com.example.poswarnus.data.transaction.TransactionRepositoryImpl
 import dagger.Module
@@ -14,5 +15,6 @@ import javax.inject.Singleton
 object TransactionModule {
     @Provides
     @Singleton
-    fun provideTransactionRepository(dao: TransactionDao): TransactionRepository = TransactionRepositoryImpl(dao)
+    fun provideTransactionRepository(dao: TransactionDao, syncScheduler: SyncScheduler): TransactionRepository =
+        TransactionRepositoryImpl(dao, syncScheduler)
 }

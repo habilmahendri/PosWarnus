@@ -6,6 +6,7 @@ import com.example.poswarnus.data.catalog.CatalogRepository
 import com.example.poswarnus.data.catalog.Category
 import com.example.poswarnus.data.catalog.MenuItem
 import com.example.poswarnus.data.catalog.RefreshResult
+import com.example.poswarnus.data.sync.SyncScheduler
 import com.example.poswarnus.data.tax.TaxRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,7 @@ data class DashboardUiState(
 class DashboardViewModel @Inject constructor(
     private val repository: CatalogRepository,
     private val taxRepository: TaxRepository,
+    private val syncScheduler: SyncScheduler,
 ) : ViewModel() {
     private val selectedCategoryId = MutableStateFlow<String?>(null)
     private val searchQuery = MutableStateFlow("")
@@ -87,6 +89,11 @@ class DashboardViewModel @Inject constructor(
         if (refreshInProgress) return
         refreshInProgress = true
         isLoading.value = true
+        try {
+            syncScheduler.requestSync()
+        } catch (e: Exception) {
+            // Scheduling is best effort; it must never break the catalog refresh.
+        }
         // Independent of the catalog result; TaxRepository.refresh() swallows its own failures.
         viewModelScope.launch { taxRepository.refresh() }
         viewModelScope.launch {

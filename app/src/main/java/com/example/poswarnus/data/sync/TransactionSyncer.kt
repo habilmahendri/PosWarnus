@@ -20,7 +20,7 @@ class TransactionSyncer(
     private val stopsBatch: (Throwable) -> Boolean = SyncErrors::stopsBatch,
     private val batchSize: Int = 20,
 ) {
-    /** Walks the PENDING, non-training sales of the signed-in cashier in createdAt order. Never throws except cancellation. */
+    /** Walks the PENDING, non-training sales of the signed-in cashier in createdAt order. Throws CancellationException or a store (Room) error; the caller (the worker) handles both. */
     suspend fun syncPending(): SyncResult {
         val cashierId = currentCashierId() ?: return SyncResult(0, 0, stoppedEarly = true)
         var synced = 0

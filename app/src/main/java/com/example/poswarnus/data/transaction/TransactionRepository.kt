@@ -3,6 +3,7 @@ package com.example.poswarnus.data.transaction
 import com.example.poswarnus.data.local.TransactionDao
 import com.example.poswarnus.data.local.TransactionEntity
 import com.example.poswarnus.data.local.TransactionLineEntity
+import com.example.poswarnus.data.sync.SyncScheduler
 import com.example.poswarnus.ui.cart.CartLine
 import com.example.poswarnus.ui.cart.OrderTotals
 import kotlinx.coroutines.CancellationException
@@ -21,7 +22,10 @@ interface TransactionRepository {
     suspend fun save(sale: SaleSnapshot, cashReceived: Long): Result<Unit>
 }
 
-class TransactionRepositoryImpl(private val dao: TransactionDao) : TransactionRepository {
+class TransactionRepositoryImpl(
+    private val dao: TransactionDao,
+    private val syncScheduler: SyncScheduler,
+) : TransactionRepository {
     override suspend fun save(sale: SaleSnapshot, cashReceived: Long): Result<Unit> =
         try {
             val header = TransactionEntity(
@@ -49,6 +53,14 @@ class TransactionRepositoryImpl(private val dao: TransactionDao) : TransactionRe
                 )
             }
             dao.insertSale(header, lines)
+            // The sale is already stored; a scheduler failure must not turn the save into a failure.
+            try {
+                syncScheduler.requestSync()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // ignored on purpose; the periodic work and the next refresh pick the sale up
+            }
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
