@@ -153,3 +153,11 @@ PRD: 4.14.
 ## Backlog (unscheduled ideas, not in the PRD)
 
 Shift close-out and cash in/out log, WhatsApp / QR-review receipts, queue number and "ready" status, per-item notes and order type, one-tap add for items without required options, remember last-chosen options, abbreviation search, automatic cash-drawer open, manual discounts, parked orders, loyalty stamps by phone number, quick PIN switch between cashiers, customer-facing display, QR table self-order, barcode scanning for packaged goods. Non-cash payment (QRIS) is a PRD non-goal today.
+
+Technical follow-ups (small, from Phases 4-5):
+- **Connectivity listener:** the app has none (no `ConnectivityManager` / `NetworkCallback` / `ACCESS_NETWORK_STATE`); the only network awareness is WorkManager's `NetworkType.CONNECTED` constraint, so after the network returns the pill can stay "Offline" until the next sync trigger (a sale, opening/refreshing the dashboard, tapping the banner, or the 15-minute periodic run). Idea: `registerDefaultNetworkCallback` in `Application`, and on `onAvailable` call `requestSync()` and refresh the catalog and tax. Use it only as a trigger, never to decide the "Offline" label (the label stays evidence-based: a real failed request).
+- **Header and pill polish:** `combine(catalog, syncSummary)` waits for the first summary emission (add an `onStart` default); `remember(pill)` freezes "today" past midnight; treat 5xx/429 upload errors as batch-stopping instead of one try per row; unit test the `Synced` accessibility description.
+- **Auth:** `AuthRepositoryImpl.isLoggedIn()` clears the stored session on any failed restore, including a network timeout at app start (Phase 1 bug); `ensureSessionForSync()` may overwrite the cached cashier id with null and does not refresh it when the live session exists.
+- **Tests:** the scheduler test cannot tell REPLACE from KEEP; the "failed row not re-read" syncer test hangs instead of failing if the cursor stops advancing; the keyset test for `NonCancellable` on `recordFailure` is missing.
+- **Cart:** a cart whose grand total is Rp0 opens the payment screen but cannot be confirmed; tax refresh failures are silent (no log).
+- **Data cleanup:** the 8 emulator test sales on the live Supabase `transactions` table (and the 7 older ones in the emulator database) are test data.
