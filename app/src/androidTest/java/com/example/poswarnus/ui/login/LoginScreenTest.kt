@@ -22,6 +22,7 @@ private class NeverCalledAuthRepository : AuthRepository {
 
     override suspend fun isLoggedIn(): Boolean = false
 
+    override suspend fun ensureSessionForSync(): Boolean = false
     override fun currentUserId(): String? = null
 }
 
@@ -32,6 +33,7 @@ private class AlwaysSucceedsAuthRepository : AuthRepository {
 
     override suspend fun isLoggedIn(): Boolean = false
 
+    override suspend fun ensureSessionForSync(): Boolean = true
     override fun currentUserId(): String? = "user-1"
 }
 

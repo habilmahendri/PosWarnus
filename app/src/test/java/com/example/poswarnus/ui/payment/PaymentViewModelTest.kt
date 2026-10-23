@@ -46,6 +46,7 @@ private class FakeAuth(var userId: String? = "user-1") : AuthRepository {
     override suspend fun login(email: String, password: String): AuthResult = AuthResult.Success
     override suspend fun logout() {}
     override suspend fun isLoggedIn(): Boolean = true
+    override suspend fun ensureSessionForSync(): Boolean = userId != null
     override fun currentUserId(): String? = userId
 }
 
