@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 data class Category(val id: String, val name: String, val sortOrder: Int)
-data class MenuItem(val id: String, val categoryId: String, val name: String, val price: Double, val imageUrl: String?, val isAvailable: Boolean)
+data class MenuItem(val id: String, val categoryId: String, val name: String, val price: Double, val imageUrl: String?, val isAvailable: Boolean, val description: String? = null)
 
 sealed interface RefreshResult {
     data object Success : RefreshResult

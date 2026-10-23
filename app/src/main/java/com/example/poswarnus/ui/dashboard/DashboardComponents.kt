@@ -46,6 +46,8 @@ private val rupiahFormat: NumberFormat = NumberFormat.getNumberInstance(Locale("
 /** Formats a price as "Rp25.000" (Indonesian thousands grouping, no decimals). */
 fun formatRupiah(price: Double): String = "Rp${rupiahFormat.format(price)}"
 
+fun formatRupiah(amount: Long): String = "Rp${rupiahFormat.format(amount)}"
+
 /**
  * Menu card — docs/design-reference.md "Dashboard" § catalog grid: white card, 1px line border,
  * 10dp radius, 16:9 photo, 2-line name with reserved height, tabular price. An unavailable item
