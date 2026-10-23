@@ -219,10 +219,10 @@ class DashboardViewModelTest {
     @Test
     fun `featured items keep the source list order`() = runTest {
         val repository = FakeCatalogRepository()
-        repository.menuItemsFlow.value = listOf(featuredTeh, nasiGoreng, featuredNasi)
+        repository.menuItemsFlow.value = listOf(featuredNasi, nasiGoreng, featuredTeh)
         val viewModel = viewModel(repository)
 
-        assertEquals(listOf(featuredTeh, featuredNasi), viewModel.uiState.value.featuredItems)
+        assertEquals(listOf(featuredNasi, featuredTeh), viewModel.uiState.value.featuredItems)
     }
 
     @Test

@@ -48,6 +48,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.poswarnus.ui.components.BrandMark
 import com.example.poswarnus.ui.components.EyeGlyph
+import com.example.poswarnus.ui.components.LightSystemBarIcons
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
 import com.example.poswarnus.ui.theme.AccentOrange
 import com.example.poswarnus.ui.theme.BackgroundCream
 import com.example.poswarnus.ui.theme.ErrorRed
@@ -85,7 +89,9 @@ fun LoginScreen(
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        if (maxWidth >= WideLayoutMinWidth) {
+        val wide = maxWidth >= WideLayoutMinWidth
+        if (!wide) LightSystemBarIcons(lightStatusBar = false)
+        if (wide) {
             Row(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
@@ -150,7 +156,7 @@ fun LoginScreen(
                     LoginForm(
                         state = state,
                         viewModel = viewModel,
-                        modifier = Modifier.fillMaxWidth().widthIn(max = FormColumnWidth),
+                        modifier = Modifier.widthIn(max = FormColumnWidth).fillMaxWidth(),
                     )
                 }
             }
@@ -227,7 +233,10 @@ private fun LoginForm(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .clickable { showPassword = !showPassword },
+                        .semantics {
+                        contentDescription = if (showPassword) "Sembunyikan kata sandi" else "Tampilkan kata sandi"
+                    }
+                    .clickable(role = Role.Button) { showPassword = !showPassword },
                     contentAlignment = Alignment.Center,
                 ) {
                     EyeGlyph(visible = showPassword, tint = TextSecondary, modifier = Modifier.size(22.dp))
@@ -261,7 +270,7 @@ private fun LoginForm(
                 disabledContainerColor = AccentOrange.copy(alpha = 0.6f),
                 disabledContentColor = SurfaceWhite,
             ),
-            modifier = Modifier.fillMaxWidth().height(56.dp).padding(top = 24.dp),
+            modifier = Modifier.padding(top = 24.dp).fillMaxWidth().height(56.dp),
         ) {
             if (state.isLoading) {
                 CircularProgressIndicator(

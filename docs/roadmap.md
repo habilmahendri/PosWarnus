@@ -40,6 +40,8 @@ Done on the branch: Room schema export (v2/v3 JSON in `app/schemas`), `is_featur
 
 Verified on emulators (tablet 2560x1600, phone 1344x2992): system splash and app splash, Login on tablet / phone landscape / phone portrait, Indonesian validation message, keyboard no longer covers the form, upgrade from a v2 database to v3 without data loss, compact header, Phase 3 flow on the phone (dialog, bottom bar, cart sheet, auto-close when the cart empties).
 
+Deliberate deviation from PRD 4.12 ("selecting a category does not hide the row"): when the selected category has no items, the featured row is not shown, only the empty state.
+
 NOT verified: the "Menu Unggulan" row itself (the live Supabase has no `is_featured` column yet), the API 24-25 launcher icon (no AVD), a wrong-password error banner (not tried), Android 12+ themed (monochrome) icon.
 
 Owner actions pending:

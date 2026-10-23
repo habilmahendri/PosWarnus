@@ -59,6 +59,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -470,7 +472,7 @@ private fun CatalogPane(
                                     text = "Menu Unggulan",
                                     style = MaterialTheme.typography.labelLarge,
                                     color = TextSecondary,
-                                    modifier = Modifier.padding(bottom = 8.dp),
+                                    modifier = Modifier.padding(bottom = 8.dp).semantics { heading() },
                                 )
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     items(state.featuredItems, key = { it.id }) { item ->
