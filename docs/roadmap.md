@@ -12,7 +12,7 @@ Status as of 2026-10-23. Source of truth for scope is [PRD-pos.md](PRD-pos.md); 
 | 3b | Featured Menu row + polish of Phases 1-3 (see below) | 4.12 | Done (merged to `main`; `is_featured` applied to the live Supabase and verified on the tablet emulator) |
 | 4 | Tax/service charge, cash Payment, Payment Success, local transaction storage (UUID, `isTraining` flag from day one), "Bayar" goes live | 4.6, 4.7, 4.8, part of 4.9 | Done (merged to `main` locally, not pushed); `tax_settings` applied to the live Supabase and verified on the tablet emulator |
 | 5 | Offline sync engine: send queue, idempotent upsert, offline / last-synced indicator, transactions tables in Supabase | rest of 4.9 | Done (merged to `main` locally, not pushed); `20261024000000_add_transactions_sync.sql` and its fix `20261024100000_fix_submit_transaction_security_definer.sql` applied to the live Supabase on 2026-10-24; uploads verified end to end on the tablet emulator and on the server |
-| 6a | Settings screen + Training Mode (toggle, banner, no persistence or sync while on) | 4.13, Settings part of 4.10 | Done on branch `worktree-phase6a-training-mode` (not merged, not pushed); verified on the tablet emulator and at phone size |
+| 6a | Settings screen + Training Mode (toggle, banner, no persistence or sync while on) | 4.13, Settings part of 4.10 | Done (merged to `main` locally, not pushed); verified on the tablet emulator and at phone size |
 | 6b | Bluetooth receipt printing, "LATIHAN" receipt marker, "Cetak struk" goes live | rest of 4.10, receipt part of 4.13 | Planned (own spec) |
 | 7 | Transaction History (incl. "pending sync") | 4.11 | Planned |
 | 8 | "Frequently bought together" suggestions in the cart | 4.14 | Planned |
