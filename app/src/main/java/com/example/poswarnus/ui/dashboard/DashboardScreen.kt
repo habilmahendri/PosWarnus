@@ -68,6 +68,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.poswarnus.data.auth.AuthRepository
 import com.example.poswarnus.data.catalog.MenuItem
 import com.example.poswarnus.ui.cart.CartPanel
+import com.example.poswarnus.data.training.TrainingModeStore
 import com.example.poswarnus.ui.cart.CartStore
 import com.example.poswarnus.ui.cart.CartViewModel
 import com.example.poswarnus.ui.cart.MenuDetailDialog
@@ -91,12 +92,14 @@ import javax.inject.Inject
 class LogoutViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val cartStore: CartStore,
+    private val trainingModeStore: TrainingModeStore,
 ) : ViewModel() {
     fun logout(onLoggedOut: () -> Unit) {
         viewModelScope.launch {
             authRepository.logout()
             // One cashier's order must never leak into the next session.
             cartStore.clear()
+            trainingModeStore.reset()
             onLoggedOut()
         }
     }

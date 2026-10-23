@@ -2,6 +2,7 @@ package com.example.poswarnus.ui.dashboard
 
 import com.example.poswarnus.data.auth.AuthRepository
 import com.example.poswarnus.data.auth.AuthResult
+import com.example.poswarnus.data.training.TrainingModeStore
 import com.example.poswarnus.ui.cart.CartLine
 import com.example.poswarnus.ui.cart.CartStore
 import kotlinx.coroutines.Dispatchers
@@ -38,11 +39,23 @@ class LogoutViewModelTest {
     fun `logout clears the cart after signing out and before navigating`() = runTest {
         val cartStore = CartStore().apply { add(CartLine("l1", "m1", "Nasi Goreng", 25000, emptyList(), 2)) }
         val events = mutableListOf<String>()
-        val viewModel = LogoutViewModel(RecordingAuthRepository(cartStore, events), cartStore)
+        val viewModel = LogoutViewModel(RecordingAuthRepository(cartStore, events), cartStore, TrainingModeStore(cartStore))
 
         viewModel.logout { events += "onLoggedOut(lines=${cartStore.state.value.lines.size})" }
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(listOf("logout(lines=1)", "onLoggedOut(lines=0)"), events)
+    }
+
+    @Test
+    fun `logout turns training mode off`() = runTest {
+        val cartStore = CartStore()
+        val trainingModeStore = TrainingModeStore(cartStore).apply { enable() }
+        val viewModel = LogoutViewModel(RecordingAuthRepository(cartStore, mutableListOf()), cartStore, trainingModeStore)
+
+        viewModel.logout {}
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(false, trainingModeStore.enabled.value)
     }
 }

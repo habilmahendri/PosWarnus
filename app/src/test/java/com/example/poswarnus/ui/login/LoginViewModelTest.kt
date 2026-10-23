@@ -3,6 +3,7 @@ package com.example.poswarnus.ui.login
 import app.cash.turbine.test
 import com.example.poswarnus.data.auth.AuthRepository
 import com.example.poswarnus.data.auth.AuthResult
+import com.example.poswarnus.data.training.TrainingModeStore
 import com.example.poswarnus.ui.cart.CartLine
 import com.example.poswarnus.ui.cart.CartStore
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +41,7 @@ private class FakeAuthRepository(
 class LoginViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val cartStore = CartStore()
+    private val trainingModeStore = TrainingModeStore(cartStore)
 
     private fun CartStore.addSample() =
         add(CartLine("l1", "m1", "Nasi Goreng", 25000, emptyList(), 2))
@@ -53,7 +55,7 @@ class LoginViewModelTest {
     @Test
     fun `blank email or password shows validation error without calling repository`() = runTest {
         val repository = FakeAuthRepository()
-        val viewModel = LoginViewModel(repository, cartStore)
+        val viewModel = LoginViewModel(repository, cartStore, trainingModeStore)
 
         viewModel.onPasswordChanged("something")
         viewModel.onLoginClicked()
@@ -66,7 +68,7 @@ class LoginViewModelTest {
     @Test
     fun `successful login emits NavigateToDashboard and clears loading`() = runTest {
         val repository = FakeAuthRepository(loginResult = AuthResult.Success)
-        val viewModel = LoginViewModel(repository, cartStore)
+        val viewModel = LoginViewModel(repository, cartStore, trainingModeStore)
         viewModel.onEmailChanged("cashier@warnus.test")
         viewModel.onPasswordChanged("correct-password")
 
@@ -81,7 +83,7 @@ class LoginViewModelTest {
     @Test
     fun `failed login shows error message and clears loading`() = runTest {
         val repository = FakeAuthRepository(loginResult = AuthResult.Failure("Invalid login credentials"))
-        val viewModel = LoginViewModel(repository, cartStore)
+        val viewModel = LoginViewModel(repository, cartStore, trainingModeStore)
         viewModel.onEmailChanged("cashier@warnus.test")
         viewModel.onPasswordChanged("wrong-password")
 
@@ -98,7 +100,7 @@ class LoginViewModelTest {
     @Test
     fun `successful login clears a cart left over from the previous session`() = runTest {
         cartStore.addSample()
-        val viewModel = LoginViewModel(FakeAuthRepository(loginResult = AuthResult.Success), cartStore)
+        val viewModel = LoginViewModel(FakeAuthRepository(loginResult = AuthResult.Success), cartStore, trainingModeStore)
         viewModel.onEmailChanged("cashier@warnus.test")
         viewModel.onPasswordChanged("correct-password")
 
@@ -113,7 +115,7 @@ class LoginViewModelTest {
     @Test
     fun `failed login does not clear the cart`() = runTest {
         cartStore.addSample()
-        val viewModel = LoginViewModel(FakeAuthRepository(loginResult = AuthResult.Failure("Invalid login credentials")), cartStore)
+        val viewModel = LoginViewModel(FakeAuthRepository(loginResult = AuthResult.Failure("Invalid login credentials")), cartStore, trainingModeStore)
         viewModel.onEmailChanged("cashier@warnus.test")
         viewModel.onPasswordChanged("wrong-password")
 
@@ -126,7 +128,7 @@ class LoginViewModelTest {
     @Test
     fun `double-tapping login while loading only triggers one repository call`() = runTest {
         val repository = FakeAuthRepository(loginResult = AuthResult.Success)
-        val viewModel = LoginViewModel(repository, cartStore)
+        val viewModel = LoginViewModel(repository, cartStore, trainingModeStore)
         viewModel.onEmailChanged("cashier@warnus.test")
         viewModel.onPasswordChanged("correct-password")
 
@@ -140,7 +142,7 @@ class LoginViewModelTest {
     @Test
     fun `init checks isLoggedIn and emits NavigateToDashboard immediately when already authenticated`() = runTest {
         val repository = FakeAuthRepository(isLoggedInResult = true)
-        val viewModel = LoginViewModel(repository, cartStore)
+        val viewModel = LoginViewModel(repository, cartStore, trainingModeStore)
 
         viewModel.events.test {
             dispatcher.scheduler.advanceUntilIdle()
@@ -151,12 +153,27 @@ class LoginViewModelTest {
     @Test
     fun `init does not emit NavigateToDashboard when no session is persisted`() = runTest {
         val repository = FakeAuthRepository(isLoggedInResult = false)
-        val viewModel = LoginViewModel(repository, cartStore)
+        val viewModel = LoginViewModel(repository, cartStore, trainingModeStore)
 
         viewModel.events.test {
             dispatcher.scheduler.advanceUntilIdle()
             expectNoEvents()
         }
         assertNull(viewModel.uiState.value.errorMessage)
+    }
+
+    @Test
+    fun `successful login turns training mode off`() = runTest {
+        trainingModeStore.enable()
+        val viewModel = LoginViewModel(FakeAuthRepository(loginResult = AuthResult.Success), cartStore, trainingModeStore)
+        viewModel.onEmailChanged("cashier@warnus.test")
+        viewModel.onPasswordChanged("correct-password")
+
+        viewModel.events.test {
+            viewModel.onLoginClicked()
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(LoginEvent.NavigateToDashboard, awaitItem())
+        }
+        assertEquals(false, trainingModeStore.enabled.value)
     }
 }
