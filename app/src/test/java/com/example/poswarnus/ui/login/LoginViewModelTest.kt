@@ -32,6 +32,7 @@ private class FakeAuthRepository(
 
     override suspend fun logout() {}
     override suspend fun isLoggedIn(): Boolean = isLoggedInResult
+    override fun currentUserId(): String? = "user-1"
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

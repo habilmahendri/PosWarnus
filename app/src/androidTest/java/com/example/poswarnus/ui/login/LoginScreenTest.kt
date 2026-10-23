@@ -21,6 +21,8 @@ private class NeverCalledAuthRepository : AuthRepository {
     }
 
     override suspend fun isLoggedIn(): Boolean = false
+
+    override fun currentUserId(): String? = null
 }
 
 private class AlwaysSucceedsAuthRepository : AuthRepository {
@@ -29,6 +31,8 @@ private class AlwaysSucceedsAuthRepository : AuthRepository {
     override suspend fun logout() {}
 
     override suspend fun isLoggedIn(): Boolean = false
+
+    override fun currentUserId(): String? = "user-1"
 }
 
 class LoginScreenTest {

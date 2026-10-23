@@ -15,6 +15,9 @@ interface AuthRepository {
     suspend fun login(email: String, password: String): AuthResult
     suspend fun logout()
     suspend fun isLoggedIn(): Boolean
+
+    /** Id of the signed-in cashier, or null when there is no session. */
+    fun currentUserId(): String?
 }
 
 class AuthRepositoryImpl(
@@ -51,6 +54,8 @@ class AuthRepositoryImpl(
         if (!isValid) sessionStore.save(null)
         return isValid
     }
+
+    override fun currentUserId(): String? = gateway.currentUserId()
 
     private fun mapLoginError(e: Exception): String = when {
         // Supabase's own rest exceptions (and any RestException in general) embed the request

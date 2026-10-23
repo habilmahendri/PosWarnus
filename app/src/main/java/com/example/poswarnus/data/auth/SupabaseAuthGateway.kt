@@ -42,6 +42,8 @@ class SupabaseAuthGateway(private val client: SupabaseClient) : AuthGateway {
             false
         }
 
+    override fun currentUserId(): String? = client.auth.currentUserOrNull()?.id
+
     private companion object {
         const val RESTORE_TIMEOUT_MS = 10_000L
     }

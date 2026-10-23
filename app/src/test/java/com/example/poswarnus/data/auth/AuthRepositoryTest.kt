@@ -39,6 +39,8 @@ private class FakeAuthGateway(
         restoreSessionCallCount++
         return restoreSessionResult.getOrThrow()
     }
+
+    override fun currentUserId(): String? = "user-1"
 }
 
 private suspend fun fakeHttpResponse(statusCode: HttpStatusCode): HttpResponse {
