@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -104,7 +106,7 @@ fun MenuDetailDialog(
                                     .fillMaxSize()
                                     .background(SideColumnBackground)
                                     .verticalScroll(rememberScrollState()),
-                            ) { ItemHeader(state.item) }
+                            ) { ItemHeader(state.item, 4f / 3f) }
                             VerticalLine()
                             Column(modifier = Modifier.weight(1f).fillMaxSize()) {
                                 TitleBar(onDismiss)
@@ -116,7 +118,7 @@ fun MenuDetailDialog(
                     } else {
                         TitleBar(onDismiss)
                         Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-                            ItemHeader(state.item)
+                            ItemHeader(state.item, 16f / 9f)
                             OptionsBody(state.draft, onToggle, Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp))
                         }
                     }
@@ -155,8 +157,8 @@ private fun TitleBar(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun ItemHeader(item: MenuItem) {
-    val imageModifier = Modifier.fillMaxWidth().aspectRatio(4f / 3f)
+private fun ItemHeader(item: MenuItem, imageRatio: Float) {
+    val imageModifier = Modifier.fillMaxWidth().aspectRatio(imageRatio)
     if (item.imageUrl != null) {
         AsyncImage(
             model = item.imageUrl,
@@ -179,6 +181,7 @@ private fun ItemHeader(item: MenuItem) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun OptionsBody(draft: OrderDraft?, onToggle: (String, String) -> Unit, modifier: Modifier) {
     if (draft == null) {
@@ -193,9 +196,17 @@ private fun OptionsBody(draft: OrderDraft?, onToggle: (String, String) -> Unit, 
             Column(modifier = Modifier.padding(top = 20.dp)) {
                 GroupHeader(group)
                 if (group.kind == OptionKind.VARIANT) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
-                        group.options.sortedBy { it.sortOrder }.forEach { option ->
-                            VariantCard(option, option.id in chosen, Modifier.weight(1f)) { onToggle(group.id, option.id) }
+                    val variants = group.options.sortedBy { it.sortOrder }
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        maxItemsInEachRow = 3,
+                        modifier = Modifier.padding(top = 6.dp).fillMaxWidth(),
+                    ) {
+                        variants.forEach { option ->
+                            VariantCard(draft.variantPrice(option), option, option.id in chosen, Modifier.weight(1f).widthIn(min = 96.dp)) {
+                                onToggle(group.id, option.id)
+                            }
                         }
                     }
                 } else {
@@ -235,25 +246,29 @@ private fun GroupHeader(group: OptionGroup) {
 private fun deltaText(delta: Long): String = if (delta != 0L) "+${formatRupiah(delta)}" else ""
 
 @Composable
-private fun VariantCard(option: Option, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun VariantCard(price: Long, option: Option, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val border = if (selected) BorderStroke(2.dp, AccentOrange) else BorderStroke(1.dp, LineStrong)
-    Column(
+    Box(
         modifier = modifier
             .heightIn(min = 76.dp)
-            .alpha(if (option.isAvailable) 1f else 0.4f)
             .clip(ControlShape)
             .background(if (selected) AccentTint else SurfaceWhite)
             .border(border, ControlShape)
-            .selectable(selected = selected, enabled = option.isAvailable, role = Role.RadioButton, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+            .selectable(selected = selected, enabled = option.isAvailable, role = Role.RadioButton, onClick = onClick),
     ) {
-        Text(option.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+        Column(
+            modifier = Modifier.fillMaxWidth().alpha(if (option.isAvailable) 1f else 0.4f).padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(option.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+            Text(formatRupiah(price), fontSize = 15.sp, color = TextPrimary, style = Tnum)
+            val third = if (selected) "Dipilih" else deltaText(option.priceDelta)
+            if (third.isNotEmpty()) {
+                Text(third, fontSize = 13.sp, color = if (selected) AccentOrangeDark else TextSecondary, style = Tnum)
+            }
+        }
         if (!option.isAvailable) {
-            HabisTag()
-        } else {
-            val delta = deltaText(option.priceDelta)
-            if (delta.isNotEmpty()) Text(delta, fontSize = 13.sp, color = TextSecondary, style = Tnum)
+            Box(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) { HabisTag() }
         }
     }
 }
@@ -269,7 +284,6 @@ private fun ModifierRow(option: Option, mode: SelectionMode, selected: Boolean, 
     val rowModifier = Modifier
         .fillMaxWidth()
         .heightIn(min = 52.dp)
-        .alpha(if (enabled) 1f else 0.4f)
         .let {
             if (mode == SelectionMode.MULTI) {
                 it.toggleable(value = selected, enabled = enabled, role = Role.Checkbox, onValueChange = { onClick() })
@@ -280,19 +294,24 @@ private fun ModifierRow(option: Option, mode: SelectionMode, selected: Boolean, 
         .padding(horizontal = 4.dp, vertical = 4.dp)
     Column {
         Row(modifier = rowModifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Indicator(selected, if (mode == SelectionMode.MULTI) ControlShape else CircleShape)
-            Text(
-                option.name,
-                fontSize = 16.sp,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                color = TextPrimary,
-                modifier = Modifier.weight(1f),
-            )
-            if (!enabled) {
-                HabisTag()
-            } else {
-                Text(deltaText(option.priceDelta), fontSize = 15.sp, color = TextSecondary, style = Tnum, textAlign = TextAlign.End)
+            Row(
+                modifier = Modifier.weight(1f).alpha(if (enabled) 1f else 0.4f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Indicator(selected, if (mode == SelectionMode.MULTI) ControlShape else CircleShape)
+                Text(
+                    option.name,
+                    fontSize = 16.sp,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = TextPrimary,
+                    modifier = Modifier.weight(1f),
+                )
+                if (enabled) {
+                    Text(deltaText(option.priceDelta), fontSize = 15.sp, color = TextSecondary, style = Tnum, textAlign = TextAlign.End)
+                }
             }
+            if (!enabled) HabisTag()
         }
         HorizontalDivider(color = LineDefault)
     }

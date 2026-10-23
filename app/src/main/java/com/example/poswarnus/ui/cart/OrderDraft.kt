@@ -1,6 +1,7 @@
 package com.example.poswarnus.ui.cart
 
 import com.example.poswarnus.data.catalog.MenuItem
+import com.example.poswarnus.data.catalog.Option
 import com.example.poswarnus.data.catalog.OptionGroup
 import com.example.poswarnus.data.catalog.SelectionMode
 import kotlin.math.roundToLong
@@ -37,6 +38,9 @@ data class OrderDraft(
 
     private val basePrice: Long
         get() = item.price.roundToLong()
+
+    /** Absolute price of a variant card: the item's base price plus the option's delta. */
+    fun variantPrice(option: Option): Long = basePrice + option.priceDelta
 
     val unitPrice: Long
         get() = basePrice + toCartSelections().sumOf { it.priceDelta }

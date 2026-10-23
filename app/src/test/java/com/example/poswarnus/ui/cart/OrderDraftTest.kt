@@ -74,6 +74,12 @@ class OrderDraftTest {
         assertEquals(40000L, d.unitPrice)
     }
 
+    @Test fun `variantPrice is base price plus option delta`() {
+        val d = OrderDraft(item, listOf(size))
+        assertEquals(25000L, d.variantPrice(size.options[0]))
+        assertEquals(35000L, d.variantPrice(size.options[1]))
+    }
+
     @Test fun `lineTotal multiplies by quantity`() {
         val d = OrderDraft(item, listOf(size, extras)).toggle("g-size", "large").toggle("g-extra", "keju").withQuantity(2)
         assertEquals(80000L, d.lineTotal)
