@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.poswarnus.ui.components.ArrowBackGlyph
+import com.example.poswarnus.ui.components.TrainingBanner
 import com.example.poswarnus.ui.theme.AccentOrange
 import com.example.poswarnus.ui.theme.BackgroundCream
 import com.example.poswarnus.ui.theme.LineDefault
@@ -56,6 +57,7 @@ fun SettingsScreen(
             .background(BackgroundCream)
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
+        if (state.trainingEnabled) TrainingBanner()
         Row(
             modifier = Modifier
                 .fillMaxWidth()

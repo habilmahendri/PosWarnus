@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -80,6 +81,9 @@ import com.example.poswarnus.ui.components.BrandMark
 import com.example.poswarnus.ui.components.CloseGlyph
 import com.example.poswarnus.ui.components.SearchGlyph
 import com.example.poswarnus.ui.components.SettingsGlyph
+import com.example.poswarnus.ui.components.TrainingBanner
+import com.example.poswarnus.ui.components.TrainingBannerColors
+import com.example.poswarnus.ui.training.TrainingBannerViewModel
 import com.example.poswarnus.ui.theme.AccentOrange
 import com.example.poswarnus.ui.theme.BackgroundCream
 import com.example.poswarnus.ui.theme.LineDefault
@@ -125,10 +129,12 @@ fun DashboardScreen(
     logoutViewModel: LogoutViewModel = hiltViewModel(),
     cartViewModel: CartViewModel = hiltViewModel(),
     paymentViewModel: PaymentViewModel = hiltViewModel(),
+    trainingBannerViewModel: TrainingBannerViewModel = hiltViewModel(),
 ) {
     val state by dashboardViewModel.uiState.collectAsState()
     val cartState by cartViewModel.uiState.collectAsState()
     val paymentState by paymentViewModel.uiState.collectAsState()
+    val trainingEnabled by trainingBannerViewModel.enabled.collectAsState()
     val hasLines = cartState.lines.isNotEmpty()
     var showCartSheet by rememberSaveable { mutableStateOf(false) }
 
@@ -162,7 +168,21 @@ fun DashboardScreen(
             )
         }
 
-        Row(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+        if (trainingEnabled) {
+            TrainingBanner(
+                modifier = Modifier
+                    .background(TrainingBannerColors.Background)
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
+            )
+        }
+        // The banner already sits below the status bar, so the panes must not pad the top inset again.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .then(if (trainingEnabled) Modifier.consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)) else Modifier),
+        ) {
             CatalogPane(
                 state = state,
                 inCartQuantities = cartState.quantityByMenuItem,
@@ -187,6 +207,7 @@ fun DashboardScreen(
                         ),
                 )
             }
+        }
         }
 
         if (showPhoneBar) {

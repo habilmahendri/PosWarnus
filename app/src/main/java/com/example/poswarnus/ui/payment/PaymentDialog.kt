@@ -54,6 +54,7 @@ import com.example.poswarnus.ui.components.BackspaceGlyph
 import com.example.poswarnus.ui.components.BrandMark
 import com.example.poswarnus.ui.components.CashGlyph
 import com.example.poswarnus.ui.components.CheckGlyph
+import com.example.poswarnus.ui.components.TrainingBanner
 import com.example.poswarnus.ui.dashboard.formatRupiah
 import com.example.poswarnus.ui.theme.AccentOrange
 import com.example.poswarnus.ui.theme.AccentOrangeDark
@@ -126,6 +127,7 @@ private fun PayingScreen(
     onDismiss: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
+        if (state.isTraining) TrainingBanner()
         Header()
         HorizontalDivider(color = LineDefault)
         if (wide) {
@@ -475,7 +477,9 @@ private fun BottomBar(wide: Boolean, state: PaymentUiState.Paying, onConfirm: ()
 
 @Composable
 private fun SuccessScreen(state: PaymentUiState.Success, onFinish: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+    Column(modifier = Modifier.fillMaxSize()) {
+    if (state.isTraining) TrainingBanner()
+    Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
         Surface(
             modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
@@ -512,6 +516,7 @@ private fun SuccessScreen(state: PaymentUiState.Success, onFinish: () -> Unit) {
                 ) { Text("Selesai", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) }
             }
         }
+    }
     }
 }
 
