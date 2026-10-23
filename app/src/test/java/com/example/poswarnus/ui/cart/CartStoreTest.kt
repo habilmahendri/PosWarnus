@@ -40,6 +40,29 @@ class CartStoreTest {
     }
 
     @Test
+    fun `add keeps a separate line when the same config has a different snapshot price`() {
+        val s = store()
+        s.add(line("a", basePrice = 20_000, selections = listOf(large), quantity = 2))
+        s.add(line("b", basePrice = 24_000, selections = listOf(large), quantity = 1))
+        val lines = s.state.value.lines
+        assertEquals(listOf("a", "b"), lines.map { it.lineId })
+        assertEquals(listOf(2, 1), lines.map { it.quantity })
+        assertEquals(50_000L + 29_000L, s.state.value.subtotal)
+    }
+
+    @Test
+    fun `replace does not merge into a same-config line with a different snapshot price`() {
+        val s = store()
+        s.add(line("a", basePrice = 20_000, quantity = 2))
+        s.add(line("b", basePrice = 24_000, selections = listOf(large), quantity = 3))
+        s.replace("a", listOf(large), 1)
+        val lines = s.state.value.lines
+        assertEquals(listOf("a", "b"), lines.map { it.lineId })
+        assertEquals(listOf(1, 3), lines.map { it.quantity })
+        assertEquals(20_000L, lines[0].basePrice)
+    }
+
+    @Test
     fun `replace updates selections and quantity in place keeping lineId`() {
         val s = store()
         s.add(line("a"))

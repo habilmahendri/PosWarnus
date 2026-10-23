@@ -12,6 +12,8 @@ data class OrderDraft(
     val groups: List<OptionGroup>,
     val selected: Map<String, Set<String>> = emptyMap(),
     val quantity: Int = 1,
+    /** Whole-Rupiah base. An Edit draft carries the line's snapshot so it shows what will be saved. */
+    val basePrice: Long = item.price.roundToLong(),
 ) {
     fun toggle(groupId: String, optionId: String): OrderDraft {
         val group = groups.firstOrNull { it.id == groupId } ?: return this
@@ -36,9 +38,6 @@ data class OrderDraft(
     val canSubmit: Boolean
         get() = missingRequiredGroups.isEmpty()
 
-    private val basePrice: Long
-        get() = item.price.roundToLong()
-
     /** Absolute price of a variant card: the item's base price plus the option's delta. */
     fun variantPrice(option: Option): Long = basePrice + option.priceDelta
 
@@ -60,10 +59,12 @@ data class OrderDraft(
         fun fromLine(item: MenuItem, groups: List<OptionGroup>, line: CartLine): OrderDraft {
             val wanted = line.selections.map { it.optionId }.toSet()
             val selected = groups.mapNotNull { g ->
-                val ids = g.options.filter { it.isAvailable && it.id in wanted }.map { it.id }.toSet()
-                if (ids.isEmpty()) null else g.id to ids
+                val matches = g.options.sortedBy { it.sortOrder }.filter { it.isAvailable && it.id in wanted }
+                // A stale line could hold several options of a group that is now single-select.
+                val kept = if (g.selection == SelectionMode.SINGLE) matches.take(1) else matches
+                if (kept.isEmpty()) null else g.id to kept.map { it.id }.toSet()
             }.toMap()
-            return OrderDraft(item, groups, selected, line.quantity.coerceAtLeast(1))
+            return OrderDraft(item, groups, selected, line.quantity.coerceAtLeast(1), basePrice = line.basePrice)
         }
     }
 }

@@ -111,6 +111,40 @@ class OrderDraftTest {
         assertEquals(3, d.quantity)
     }
 
+    @Test fun `fromLine prices from the line snapshot base, not the current item price`() {
+        val line = CartLine(
+            "l1", "m1", "Nasi Goreng", 25000,
+            listOf(SelectedOption("large", "g-size", "Large", 10000, OptionKind.VARIANT)),
+            2,
+        )
+        val d = OrderDraft.fromLine(item.copy(price = 30000.0), listOf(size), line)
+        assertEquals(25000L, d.basePrice)
+        assertEquals(35000L, d.unitPrice)
+        assertEquals(70000L, d.lineTotal)
+        assertEquals(25000L, d.variantPrice(size.options[0]))
+        assertEquals(35000L, d.variantPrice(size.options[1]))
+    }
+
+    @Test fun `fromLine keeps only the first option by sortOrder in a single group`() {
+        val line = CartLine(
+            "l1", "m1", "Nasi Goreng", 25000,
+            listOf(
+                SelectedOption("large", "g-size", "Large", 10000, OptionKind.VARIANT),
+                SelectedOption("regular", "g-size", "Regular", 0, OptionKind.VARIANT),
+                SelectedOption("telur", "g-extra", "Extra Telur", 3000, OptionKind.MODIFIER),
+                SelectedOption("keju", "g-extra", "Extra Keju", 5000, OptionKind.MODIFIER),
+            ),
+            1,
+        )
+        val d = OrderDraft.fromLine(item, listOf(size, extras), line)
+        assertEquals(setOf("regular"), d.selected["g-size"])
+        assertEquals(setOf("keju", "telur"), d.selected["g-extra"])
+    }
+
+    @Test fun `new draft base defaults to the rounded item price`() {
+        assertEquals(25000L, OrderDraft(item, emptyList()).basePrice)
+    }
+
     @Test fun `price 12500_5 rounds to 12501 base`() {
         val d = OrderDraft(item.copy(price = 12500.5), emptyList())
         assertEquals(12501L, d.unitPrice)

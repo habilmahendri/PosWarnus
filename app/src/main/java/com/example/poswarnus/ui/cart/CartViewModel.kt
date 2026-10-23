@@ -8,7 +8,6 @@ import com.example.poswarnus.data.catalog.OptionGroup
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.math.roundToLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -137,7 +136,7 @@ class CartViewModel @Inject constructor(
                     lineId = UUID.randomUUID().toString(),
                     menuItemId = ui.item.id,
                     name = ui.item.name,
-                    basePrice = ui.item.price.roundToLong(),
+                    basePrice = draft.basePrice,
                     selections = draft.toCartSelections(),
                     quantity = draft.quantity,
                 ),

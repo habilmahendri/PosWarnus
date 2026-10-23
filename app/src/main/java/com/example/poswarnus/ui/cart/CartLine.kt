@@ -19,9 +19,13 @@ data class CartLine(
     val selections: List<SelectedOption>,
     val quantity: Int,
 ) {
-    /** Identical configurations merge into one line; option order must not matter. */
+    /**
+     * Identical configurations at the same snapshot price merge into one line; option order must
+     * not matter. The price is part of the key so units added after a catalog price change are
+     * not charged the older line's price.
+     */
     val configKey: String
-        get() = menuItemId + "|" + selections.map { it.optionId }.sorted().joinToString(",")
+        get() = menuItemId + "|" + selections.map { it.optionId }.sorted().joinToString(",") + "|" + unitPrice
 
     val unitPrice: Long
         get() = basePrice + selections.sumOf { it.priceDelta }

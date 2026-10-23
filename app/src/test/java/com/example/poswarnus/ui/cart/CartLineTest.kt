@@ -20,6 +20,22 @@ class CartLineTest {
         assertNotEquals(line(listOf(large, keju)).configKey, line(listOf(large, telur)).configKey)
     }
 
+    @Test fun `configKey differs when the snapshot base price differs`() {
+        val old = CartLine("a", "m1", "Nasi Goreng", 25000, listOf(large), 1)
+        val repriced = CartLine("b", "m1", "Nasi Goreng", 30000, listOf(large), 1)
+        assertNotEquals(old.configKey, repriced.configKey)
+    }
+
+    @Test fun `configKey differs when an option delta snapshot differs`() {
+        assertNotEquals(line(listOf(large)).configKey, line(listOf(large.copy(priceDelta = 12000))).configKey)
+    }
+
+    @Test fun `configKey equal for same config and same price`() {
+        val a = CartLine("a", "m1", "Nasi Goreng", 25000, listOf(large, keju), 1)
+        val b = CartLine("b", "m1", "Nasi Goreng", 25000, listOf(keju, large), 4)
+        assertEquals(a.configKey, b.configKey)
+    }
+
     @Test fun `summary lists variant first then modifiers`() {
         assertEquals("Large · Extra Keju, Extra Telur", line(listOf(keju, telur, large)).summary)
     }

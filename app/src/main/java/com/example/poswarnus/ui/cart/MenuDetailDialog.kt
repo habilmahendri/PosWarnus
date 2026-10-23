@@ -106,7 +106,7 @@ fun MenuDetailDialog(
                                     .fillMaxSize()
                                     .background(SideColumnBackground)
                                     .verticalScroll(rememberScrollState()),
-                            ) { ItemHeader(state.item, 4f / 3f) }
+                            ) { ItemHeader(state.item, 4f / 3f, state.draft?.basePrice) }
                             VerticalLine()
                             Column(modifier = Modifier.weight(1f).fillMaxSize()) {
                                 TitleBar(onDismiss)
@@ -118,7 +118,7 @@ fun MenuDetailDialog(
                     } else {
                         TitleBar(onDismiss)
                         Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-                            ItemHeader(state.item, 16f / 9f)
+                            ItemHeader(state.item, 16f / 9f, state.draft?.basePrice)
                             OptionsBody(state.draft, onToggle, Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp))
                         }
                     }
@@ -156,8 +156,9 @@ private fun TitleBar(onDismiss: () -> Unit) {
     }
 }
 
+/** [basePrice] is the draft's base (the line snapshot when editing); null while groups load. */
 @Composable
-private fun ItemHeader(item: MenuItem, imageRatio: Float) {
+private fun ItemHeader(item: MenuItem, imageRatio: Float, basePrice: Long?) {
     val imageModifier = Modifier.fillMaxWidth().aspectRatio(imageRatio)
     if (item.imageUrl != null) {
         AsyncImage(
@@ -176,7 +177,7 @@ private fun ItemHeader(item: MenuItem, imageRatio: Float) {
         }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Harga dasar", fontSize = 14.sp, color = TextSecondary)
-            Text(formatRupiah(item.price), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary, style = Tnum)
+            Text(basePrice?.let { formatRupiah(it) } ?: formatRupiah(item.price), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary, style = Tnum)
         }
     }
 }
