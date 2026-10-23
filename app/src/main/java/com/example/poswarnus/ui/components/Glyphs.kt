@@ -168,3 +168,53 @@ fun TrashGlyph(tint: Color, modifier: Modifier = Modifier) {
         drawLine(tint, Offset(w * 0.58f, h * 0.42f), Offset(w * 0.58f, h * 0.7f), stroke, StrokeCap.Round)
     }
 }
+
+@Composable
+fun ArrowBackGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val stroke = size.minDimension * 0.1f
+        val w = size.width
+        val h = size.height
+        drawLine(tint, Offset(w * 0.2f, h * 0.5f), Offset(w * 0.8f, h * 0.5f), stroke, StrokeCap.Round)
+        drawLine(tint, Offset(w * 0.2f, h * 0.5f), Offset(w * 0.45f, h * 0.25f), stroke, StrokeCap.Round)
+        drawLine(tint, Offset(w * 0.2f, h * 0.5f), Offset(w * 0.45f, h * 0.75f), stroke, StrokeCap.Round)
+    }
+}
+
+@Composable
+fun BackspaceGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val stroke = size.minDimension * 0.08f
+        val w = size.width
+        val h = size.height
+        val outline = androidx.compose.ui.graphics.Path().apply {
+            moveTo(w * 0.36f, h * 0.22f)
+            lineTo(w * 0.86f, h * 0.22f)
+            lineTo(w * 0.86f, h * 0.78f)
+            lineTo(w * 0.36f, h * 0.78f)
+            lineTo(w * 0.12f, h * 0.5f)
+            close()
+        }
+        drawPath(outline, tint, style = Stroke(width = stroke, cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+        drawLine(tint, Offset(w * 0.5f, h * 0.38f), Offset(w * 0.72f, h * 0.62f), stroke, StrokeCap.Round)
+        drawLine(tint, Offset(w * 0.72f, h * 0.38f), Offset(w * 0.5f, h * 0.62f), stroke, StrokeCap.Round)
+    }
+}
+
+/** A banknote: outlined rectangle with a centre circle. */
+@Composable
+fun CashGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val stroke = size.minDimension * 0.08f
+        val w = size.width
+        val h = size.height
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(w * 0.12f, h * 0.27f),
+            size = androidx.compose.ui.geometry.Size(w * 0.76f, h * 0.46f),
+            cornerRadius = CornerRadius(w * 0.06f),
+            style = Stroke(width = stroke),
+        )
+        drawCircle(tint, radius = h * 0.1f, center = Offset(w * 0.5f, h * 0.5f), style = Stroke(width = stroke))
+    }
+}

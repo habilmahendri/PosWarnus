@@ -20,6 +20,7 @@ private class RecordingAuthRepository(private val cartStore: CartStore, private 
     override suspend fun login(email: String, password: String): AuthResult = AuthResult.Success
     override suspend fun logout() { events += "logout(lines=${cartStore.state.value.lines.size})" }
     override suspend fun isLoggedIn(): Boolean = true
+    override fun currentUserId(): String? = "user-1"
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

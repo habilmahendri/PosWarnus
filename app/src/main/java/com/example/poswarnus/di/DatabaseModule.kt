@@ -7,6 +7,9 @@ import com.example.poswarnus.data.local.CatalogTransactionRunner
 import com.example.poswarnus.data.local.CategoryDao
 import com.example.poswarnus.data.local.MIGRATION_1_2
 import com.example.poswarnus.data.local.MIGRATION_2_3
+import com.example.poswarnus.data.local.MIGRATION_3_4
+import com.example.poswarnus.data.local.TaxSettingsDao
+import com.example.poswarnus.data.local.TransactionDao
 import com.example.poswarnus.data.local.MenuItemDao
 import com.example.poswarnus.data.local.OptionDao
 import com.example.poswarnus.data.local.OptionGroupDao
@@ -25,7 +28,7 @@ object DatabaseModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "pos_warnus.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
 
     @Provides
@@ -39,6 +42,12 @@ object DatabaseModule {
 
     @Provides
     fun provideOptionDao(db: AppDatabase): OptionDao = db.optionDao()
+
+    @Provides
+    fun provideTaxSettingsDao(db: AppDatabase): TaxSettingsDao = db.taxSettingsDao()
+
+    @Provides
+    fun provideTransactionDao(db: AppDatabase): TransactionDao = db.transactionDao()
 
     @Provides
     @Singleton

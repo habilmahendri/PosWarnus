@@ -6,6 +6,8 @@ import com.example.poswarnus.data.catalog.CatalogRepository
 import com.example.poswarnus.data.catalog.MenuItem
 import com.example.poswarnus.data.catalog.OptionGroup
 import com.example.poswarnus.data.catalog.RefreshResult
+import com.example.poswarnus.data.tax.TaxConfig
+import com.example.poswarnus.data.tax.TaxRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -41,6 +43,14 @@ private class FakeCatalogRepository(
     }
 }
 
+private class FakeTaxRepository : TaxRepository {
+    override val taxConfig: Flow<TaxConfig?> = MutableStateFlow(null)
+    var refreshCount = 0
+        private set
+
+    override suspend fun refresh() { refreshCount++ }
+}
+
 private val makanan = Category("a", "Makanan", 1)
 private val minuman = Category("b", "Minuman", 2)
 private val nasiGoreng = MenuItem("1", "a", "Nasi Goreng", 25000.0, null, true)
@@ -57,8 +67,27 @@ class DashboardViewModelTest {
     @After
     fun tearDown() { Dispatchers.resetMain() }
 
-    private fun viewModel(repository: FakeCatalogRepository) = DashboardViewModel(repository).also {
+    private val taxRepository = FakeTaxRepository()
+
+    private fun viewModel(repository: FakeCatalogRepository) = DashboardViewModel(repository, taxRepository).also {
         dispatcher.scheduler.advanceUntilIdle()
+    }
+
+    @Test
+    fun `refresh also refreshes tax`() = runTest {
+        viewModel(FakeCatalogRepository())
+        assertEquals(1, taxRepository.refreshCount)
+    }
+
+    @Test
+    fun `a failed catalog refresh still refreshes tax and a tax refresh never changes catalog state`() = runTest {
+        val repository = FakeCatalogRepository(refreshResult = RefreshResult.Failure("x"))
+        repository.menuItemsFlow.value = listOf(nasiGoreng)
+        val viewModel = viewModel(repository)
+
+        assertEquals(1, taxRepository.refreshCount)
+        assertEquals(true, viewModel.uiState.value.isOffline)
+        assertEquals(listOf(nasiGoreng), viewModel.uiState.value.visibleItems)
     }
 
     @Test

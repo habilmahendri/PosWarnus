@@ -11,4 +11,7 @@ interface AuthGateway {
      * expired/revoked and could not be refreshed, or if the session could not be restored at all.
      */
     suspend fun restoreSession(sessionJson: String): Boolean
+
+    /** Id of the signed-in user, or null when there is no session. */
+    fun currentUserId(): String?
 }

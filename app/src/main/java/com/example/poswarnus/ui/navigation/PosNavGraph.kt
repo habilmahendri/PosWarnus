@@ -52,11 +52,10 @@ fun PosNavGraph(navController: NavHostController = rememberNavController()) {
                         popUpTo(PosDestinations.DASHBOARD) { inclusive = true }
                     }
                 },
-                // Phase 4 wires payment; "Bayar" is a no-op until then.
-                onCheckout = { },
-                // Owned by this entry, so popping the dashboard on logout destroys it along with
+                // Owned by this entry, so popping the dashboard on logout destroys them along with
                 // any open dialog; the shared CartStore is cleared by LogoutViewModel.
                 cartViewModel = hiltViewModel(viewModelStoreOwner = backStackEntry),
+                paymentViewModel = hiltViewModel(viewModelStoreOwner = backStackEntry),
             )
         }
     }
