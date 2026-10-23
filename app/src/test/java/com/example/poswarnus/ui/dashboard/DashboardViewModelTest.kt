@@ -160,4 +160,89 @@ class DashboardViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         assertEquals(false, viewModel.uiState.value.isLoading)
     }
+
+    private val featuredNasi = nasiGoreng.copy(isFeatured = true)
+    private val featuredTeh = esTeh.copy(isFeatured = true)
+    private val featuredSotoHabis = sotoHabis.copy(isFeatured = true)
+
+    @Test
+    fun `featured items appear for featured and available menu items`() = runTest {
+        val repository = FakeCatalogRepository()
+        repository.menuItemsFlow.value = listOf(featuredNasi, esTeh)
+        val viewModel = viewModel(repository)
+
+        assertEquals(listOf(featuredNasi), viewModel.uiState.value.featuredItems)
+    }
+
+    @Test
+    fun `unavailable featured item is excluded`() = runTest {
+        val repository = FakeCatalogRepository()
+        repository.menuItemsFlow.value = listOf(featuredSotoHabis, featuredNasi)
+        val viewModel = viewModel(repository)
+
+        assertEquals(listOf(featuredNasi), viewModel.uiState.value.featuredItems)
+    }
+
+    @Test
+    fun `no featured items gives an empty list`() = runTest {
+        val repository = FakeCatalogRepository()
+        repository.menuItemsFlow.value = listOf(nasiGoreng, esTeh)
+        val viewModel = viewModel(repository)
+
+        assertEquals(emptyList<MenuItem>(), viewModel.uiState.value.featuredItems)
+    }
+
+    @Test
+    fun `featured row is hidden while the search query is not blank`() = runTest {
+        val repository = FakeCatalogRepository()
+        repository.menuItemsFlow.value = listOf(featuredNasi, featuredTeh)
+        val viewModel = viewModel(repository)
+
+        viewModel.onSearchQueryChanged("nasi")
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(emptyList<MenuItem>(), viewModel.uiState.value.featuredItems)
+    }
+
+    @Test
+    fun `featured row is still shown when a category is selected`() = runTest {
+        val repository = FakeCatalogRepository()
+        repository.menuItemsFlow.value = listOf(nasiGoreng, featuredTeh)
+        val viewModel = viewModel(repository)
+
+        viewModel.onCategorySelected("a")
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(featuredTeh), viewModel.uiState.value.featuredItems)
+    }
+
+    @Test
+    fun `featured items keep the source list order`() = runTest {
+        val repository = FakeCatalogRepository()
+        repository.menuItemsFlow.value = listOf(featuredTeh, nasiGoreng, featuredNasi)
+        val viewModel = viewModel(repository)
+
+        assertEquals(listOf(featuredTeh, featuredNasi), viewModel.uiState.value.featuredItems)
+    }
+
+    @Test
+    fun `featured items do not change visibleItems`() = runTest {
+        val repository = FakeCatalogRepository()
+        repository.menuItemsFlow.value = listOf(featuredNasi, esTeh)
+        val viewModel = viewModel(repository)
+
+        assertEquals(listOf(featuredNasi, esTeh), viewModel.uiState.value.visibleItems)
+    }
+
+    @Test
+    fun `blank-only query still shows the row`() = runTest {
+        val repository = FakeCatalogRepository()
+        repository.menuItemsFlow.value = listOf(featuredNasi)
+        val viewModel = viewModel(repository)
+
+        viewModel.onSearchQueryChanged("   ")
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(featuredNasi), viewModel.uiState.value.featuredItems)
+    }
 }
