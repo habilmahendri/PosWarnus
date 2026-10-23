@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -21,7 +20,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,22 +64,28 @@ fun CartPanel(
     modifier: Modifier = Modifier,
 ) {
     val isEmpty = state.lines.isEmpty()
-    Row(modifier = modifier) {
-        VerticalDivider(color = LineDefault, thickness = 1.dp)
-        Column(modifier = Modifier.fillMaxHeight().weight(1f).background(SurfaceWhite)) {
+    // The caller bounds the height (tablet pane: fillMaxHeight; bottom sheet: a capped max height)
+    // and draws any separating divider. The list wraps its rows up to the room the footer leaves,
+    // so a sheet is only as tall as its content, while SpaceBetween pins the footer to the bottom
+    // of a full-height pane.
+    Column(
+        modifier = modifier.background(SurfaceWhite),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f, fill = isEmpty)) {
             PanelHeader(showClear = !isEmpty, onRequestClear = onRequestClear)
             HorizontalDivider(color = LineDefault, thickness = 1.dp)
             if (isEmpty) {
                 EmptyState(modifier = Modifier.weight(1f).fillMaxWidth())
             } else {
-                LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                LazyColumn(modifier = Modifier.weight(1f, fill = false).fillMaxWidth()) {
                     items(state.lines, key = { it.line.lineId }) { item ->
                         CartRow(item, onLineClick, onIncrement, onDecrement, onRemove)
                     }
                 }
             }
-            PanelFooter(state, isEmpty, onCheckout)
         }
+        PanelFooter(state, isEmpty, onCheckout)
     }
 
     if (state.showClearConfirm) {
@@ -157,7 +161,7 @@ private fun CartRow(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onLineClick(line.lineId) }
+                .clickable(onClickLabel = "Ubah") { onLineClick(line.lineId) }
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {

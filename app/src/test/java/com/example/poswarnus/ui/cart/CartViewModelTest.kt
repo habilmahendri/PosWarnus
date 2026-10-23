@@ -368,6 +368,23 @@ class CartViewModelTest {
     }
 
     @Test
+    fun `clear confirm hides when the cart becomes empty`() = runTest {
+        val vm = viewModel()
+        vm.addNasi("g-size" to "o-lg")
+        vm.requestClearAll()
+        advance()
+        assertTrue(vm.state.showClearConfirm)
+
+        vm.removeLine(vm.state.lines.single().line.lineId)
+        advance()
+        assertFalse(vm.state.showClearConfirm)
+
+        // Refilling the cart must not resurface the stale request.
+        vm.addNasi("g-size" to "o-lg")
+        assertFalse(vm.state.showClearConfirm)
+    }
+
+    @Test
     fun `logout via store clear removes lines and dialog`() = runTest {
         val vm = viewModel()
         vm.addNasi("g-size" to "o-lg")

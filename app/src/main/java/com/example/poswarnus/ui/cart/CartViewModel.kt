@@ -73,9 +73,17 @@ class CartViewModel @Inject constructor(
             totalQuantity = cart.totalQuantity,
             quantityByMenuItem = cart.quantityByMenuItem,
             dialog = visibleDialog,
-            showClearConfirm = clearConfirm,
+            // A confirm left open while the last line was removed elsewhere would clear nothing.
+            showClearConfirm = clearConfirm && cart.lines.isNotEmpty(),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, CartUiState())
+
+    init {
+        // Drop the stale request too, so refilling the cart doesn't resurface the confirm.
+        viewModelScope.launch {
+            cartStore.state.collect { if (it.lines.isEmpty()) showClearConfirm.value = false }
+        }
+    }
 
     fun onMenuItemClicked(item: MenuItem) {
         if (!item.isAvailable) return
