@@ -11,7 +11,7 @@ Status as of 2026-10-23. Source of truth for scope is [PRD-pos.md](PRD-pos.md); 
 | 3 | Menu Detail Dialog (variants/modifiers) + in-memory Cart | 4.4, 4.5 | Done (merged to `main`; verified on tablet and phone emulators) |
 | 3b | Featured Menu row + polish of Phases 1-3 (see below) | 4.12 | Done (merged to `main`; `is_featured` applied to the live Supabase and verified on the tablet emulator) |
 | 4 | Tax/service charge, cash Payment, Payment Success, local transaction storage (UUID, `isTraining` flag from day one), "Bayar" goes live | 4.6, 4.7, 4.8, part of 4.9 | Done (merged to `main` locally, not pushed); `tax_settings` applied to the live Supabase and verified on the tablet emulator |
-| 5 | Offline sync engine: send queue, idempotent upsert, offline / last-synced indicator, transactions tables in Supabase | rest of 4.9 | Planned |
+| 5 | Offline sync engine: send queue, idempotent upsert, offline / last-synced indicator, transactions tables in Supabase | rest of 4.9 | Done on branch `worktree-phase-5-sync`, not merged; `20261024000000_add_transactions_sync.sql` NOT applied to the live Supabase, so no sale has been uploaded yet |
 | 6 | Settings screen, Bluetooth receipt printing, Training Mode toggle + "LATIHAN" receipt marker | 4.10, 4.13 | Planned |
 | 7 | Transaction History (incl. "pending sync") | 4.11 | Planned |
 | 8 | "Frequently bought together" suggestions in the cart | 4.14 | Planned |
@@ -78,6 +78,20 @@ PRD: 4.6, 4.7, 4.8, part of 4.9.
 - Payment Success screen: grand total / cash received / change; "Print receipt" action present but inert (wired to real Bluetooth printing in Phase 6) and "Done" (clears cart, returns to Dashboard).
 - Resolve the two open decisions below before/while specing this phase, since they affect the payment math and receipt content: total rounding, and whether to show a change bill/coin breakdown.
 - Explicitly deferred to Phase 5: the sync queue / sync-status field and any upload logic — Phase 4 only writes the row locally with its UUID and `isTraining` already in place.
+
+## Phase 5 status (2026-10-24)
+
+Spec: `docs/superpowers/specs/2026-10-24-offline-sync-design.md`; plan: `docs/superpowers/plans/2026-10-24-pos-offline-sync.md`. Built unattended: the user delegated execution while away, so the spec and plan were decided by the controller with the defaults offered earlier (write-only RLS for cashiers, WorkManager, unbounded retry with backoff, no FAILED state) and were not reviewed by the user. Every task had a Sonnet implementer and a Sonnet reviewer.
+
+Implemented on the branch: Room v5 (`syncStatus` / `syncedAt` / `syncAttempts` / `lastSyncError` on `transactions`, `MIGRATION_4_5`, schema `5.json`, DAO queries), `TransactionSyncer` (keyset-paged, idempotent, per-cashier, stops on offline/session errors, records `offline:` / `session:` / `rejected:` without leaking URLs or tokens), `SupabaseTransactionRemoteDataSource` (one atomic `submit_transaction` RPC), `TransactionSyncWorker` + `WorkManagerSyncScheduler` (one-time REPLACE on every save and dashboard refresh, 15-minute periodic safety net, CONNECTED constraint, exponential backoff), `AuthRepository.ensureSessionForSync()` (restores a lost session without ever clearing the stored one), the sync-status pill in the catalog header (`Offline` / `N menunggu sinkron` / `Tersinkron HH:mm`), and the SQL file `supabase/migrations/20261024000000_add_transactions_sync.sql`.
+
+Verified on the tablet emulator against the live Supabase project, which does NOT have the new tables or function (the expected state): upgrade from the Phase 4 build over its real v4 database (`user_version` 4 -> 5, all 5 sales kept, every one `PENDING`, no crash); on first launch the sync ran and recorded `rejected: ... Could not find the function public.submit_transaction` with `syncAttempts` growing, and the stored errors contain no `https://`, `Authorization`, `Bearer` or `apikey`; a new sale completed and the pill read "6 menunggu sinkron" (not "Offline"); with Wi-Fi off the pill and banner read "Offline", a sale still completed and was stored, and a row recorded `offline: HttpRequestTimeoutException`; with Wi-Fi back, tapping the banner retried and the pill returned to "N menunggu sinkron"; phone size (1080x2400): pill and "Keluar" fit, the brand title ellipsizes first. One layout bug was found here and fixed: in the wide header the brand title and a `Spacer` shared the leftover width, so "Warung Nusantara" was cut to "Warung ..." once the pill appeared.
+
+NOT verified: any real upload (the SQL is not applied); the idempotent re-submit; "authenticated cannot read"; the "Tersinkron HH:mm" pill on a device; killing the app between save and upload; fresh install with no cache and no network (spec 8 step 5; covered only by the existing Phase 2 unit tests); Doze / battery-saver timing of the 15-minute periodic request; a physical device; TalkBack.
+
+Known behaviour: after the network comes back the pill can keep saying "Offline" until the next sync attempt (a sale, opening the dashboard, tapping the banner, or the 15-minute periodic run), because a row keeps its last `offline:` error until it is retried.
+
+Owner action: apply `supabase/migrations/20261024000000_add_transactions_sync.sql` to the live project (not idempotent), then re-run spec section 8 scenarios 1, 2 and 4 against it: the pending sales upload, the pill reads "Tersinkron HH:mm", the server has one row per sale and a second `submit_transaction` with the same id adds nothing. The Phase 4 emulator test sales will upload too (test data). Known leftovers: `AuthRepositoryImpl.isLoggedIn()` clears the stored session on any failed restore including a network timeout at app start (Phase 1 bug, spec 9, track separately); the two androidTest `LoginScreenTest` lint errors.
 
 ## Phase 5 contents (Offline sync engine)
 

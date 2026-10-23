@@ -349,8 +349,9 @@ private fun CatalogHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Brand(modifier = Modifier.weight(1f, fill = false))
-                Spacer(modifier = Modifier.weight(1f))
+                // The brand takes all the slack; a fill=false weight beside a Spacer would hand it only
+                // half of what is left and ellipsize the title once the sync pill is on screen.
+                Brand(modifier = Modifier.weight(1f))
                 SyncStatusPill(pill = syncPill)
                 CatalogSearchField(
                     value = searchQuery,
