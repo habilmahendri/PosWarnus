@@ -1,5 +1,6 @@
 package com.example.poswarnus.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -20,6 +21,8 @@ data class MenuItemEntity(
     val imageUrl: String?,
     val isAvailable: Boolean,
     val description: String? = null,
+    // defaultValue must match the DDL in MIGRATION_2_3 exactly, or Room schema validation fails.
+    @ColumnInfo(defaultValue = "0") val isFeatured: Boolean = false,
 )
 
 @Entity(tableName = "option_groups", indices = [Index("menuItemId")])

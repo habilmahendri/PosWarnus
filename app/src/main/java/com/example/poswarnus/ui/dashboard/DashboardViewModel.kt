@@ -23,6 +23,7 @@ data class DashboardUiState(
     val isOffline: Boolean = false,
     val loadError: Boolean = false,
     val isLoading: Boolean = false,
+    val featuredItems: List<MenuItem> = emptyList(),
 )
 
 @HiltViewModel
@@ -69,6 +70,7 @@ class DashboardViewModel @Inject constructor(
             isOffline = failed && hasCache,
             loadError = failed && !hasCache,
             isLoading = loading,
+            featuredItems = if (query.isBlank()) items.filter { it.isFeatured && it.isAvailable } else emptyList(),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DashboardUiState())
 

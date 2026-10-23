@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -194,6 +195,35 @@ class CatalogRepositoryTest {
         assertEquals("Pedas gurih", f.menuItemDao.stored.value.first { it.id == "1" }.description)
         assertNull(f.menuItemDao.stored.value.first { it.id == "2" }.description)
         assertEquals("Pedas gurih", f.repository.menuItems.first().first { it.id == "1" }.description)
+    }
+
+    @Test
+    fun `refresh maps is_featured to the domain item`() = runTest {
+        val f = Fixture(FakeCatalogRemoteDataSource(
+            itemsResult = Result.success(listOf(
+                MenuItemDto("1", "a", "Nasi Goreng", 25000.0, null, true, isFeatured = true),
+                MenuItemDto("2", "a", "Es Teh", 5000.0, null, true),
+            )),
+        ))
+
+        f.repository.refresh()
+
+        val items = f.repository.menuItems.first()
+        assertTrue(items.first { it.id == "1" }.isFeatured)
+        assertFalse(items.first { it.id == "2" }.isFeatured)
+    }
+
+    @Test
+    fun `refresh keeps featured flag after full replace`() = runTest {
+        val f = Fixture(FakeCatalogRemoteDataSource(
+            itemsResult = Result.success(listOf(MenuItemDto("1", "a", "Nasi Goreng", 25000.0, null, true, isFeatured = true))),
+        ))
+
+        f.repository.refresh()
+        f.repository.refresh()
+
+        assertEquals(listOf(true), f.menuItemDao.stored.value.map { it.isFeatured })
+        assertEquals(listOf(true), f.repository.menuItems.first().map { it.isFeatured })
     }
 
     @Test

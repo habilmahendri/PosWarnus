@@ -19,6 +19,8 @@ data class MenuItemDto(
     @SerialName("image_url") val imageUrl: String?,
     @SerialName("is_available") val isAvailable: Boolean,
     @SerialName("description") val description: String? = null,
+    // Default keeps the app working against a Supabase that has no is_featured column yet.
+    @SerialName("is_featured") val isFeatured: Boolean = false,
 )
 
 @Serializable

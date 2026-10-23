@@ -63,12 +63,17 @@ fun formatRupiah(amount: Long): String = "Rp${rupiahFormat.format(amount)}"
  * quantity at the photo's top-right, and an accent border plus a 1dp accent ring.
  */
 @Composable
-fun MenuItemCard(item: MenuItem, inCartQuantity: Int = 0, onClick: () -> Unit) {
+fun MenuItemCard(
+    item: MenuItem,
+    modifier: Modifier = Modifier,
+    inCartQuantity: Int = 0,
+    onClick: () -> Unit,
+) {
     val isAvailable = item.isAvailable
     val inCart = inCartQuantity > 0
     val cardShape = RoundedCornerShape(10.dp)
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             // The 1dp ring slot is always reserved so toggling the in-cart state doesn't shift the grid.
             .border(1.dp, if (inCart) AccentOrange else Color.Transparent, RoundedCornerShape(11.dp))

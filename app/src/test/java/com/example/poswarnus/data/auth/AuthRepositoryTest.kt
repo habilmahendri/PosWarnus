@@ -86,7 +86,7 @@ class AuthRepositoryTest {
 
         val result = repository.login("cashier@warnus.test", "wrong-password") as AuthResult.Failure
 
-        assertEquals("Invalid email or password", result.message)
+        assertEquals("Email atau kata sandi salah. Periksa lalu coba lagi.", result.message)
         // The raw exception message embeds the request URL/headers/method - must never leak to the UI.
         assertFalse(result.message.contains("URL"))
         assertFalse(result.message.contains("Headers"))
@@ -102,7 +102,7 @@ class AuthRepositoryTest {
 
         val result = repository.login("cashier@warnus.test", "wrong-password") as AuthResult.Failure
 
-        assertEquals("Login failed, please try again", result.message)
+        assertEquals("Gagal masuk. Silakan coba lagi.", result.message)
     }
 
     @Test
@@ -115,7 +115,24 @@ class AuthRepositoryTest {
 
         val result = repository.login("cashier@warnus.test", "wrong-password") as AuthResult.Failure
 
-        assertEquals("Can't reach server, check your connection", result.message)
+        assertEquals("Tidak bisa terhubung. Periksa koneksi lalu coba lagi.", result.message)
+    }
+
+    @Test
+    fun `login failure never exposes the raw exception message`() = runTest {
+        val raw = "Request failed for https://example.supabase.co/auth/v1/token?secret=1"
+        val gateway = FakeAuthGateway(signInResult = Result.failure(RuntimeException(raw)))
+        val repository = AuthRepositoryImpl(gateway, InMemorySessionStore())
+
+        val result = repository.login("cashier@warnus.test", "wrong-password") as AuthResult.Failure
+
+        val allowed = setOf(
+            "Email atau kata sandi salah. Periksa lalu coba lagi.",
+            "Gagal masuk. Silakan coba lagi.",
+            "Tidak bisa terhubung. Periksa koneksi lalu coba lagi.",
+        )
+        assertTrue(result.message in allowed)
+        assertFalse(result.message.contains("https://"))
     }
 
     @Test

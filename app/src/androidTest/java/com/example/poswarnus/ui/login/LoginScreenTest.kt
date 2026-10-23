@@ -45,7 +45,7 @@ class LoginScreenTest {
 
         composeTestRule.onNodeWithText("Login").performClick()
 
-        composeTestRule.onNodeWithText("Email and password are required").assertExists()
+        composeTestRule.onNodeWithText("Email dan kata sandi wajib diisi.").assertExists()
     }
 
     @Test

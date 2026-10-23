@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.map
 import kotlin.math.roundToLong
 
 data class Category(val id: String, val name: String, val sortOrder: Int)
-data class MenuItem(val id: String, val categoryId: String, val name: String, val price: Double, val imageUrl: String?, val isAvailable: Boolean, val description: String? = null)
+data class MenuItem(val id: String, val categoryId: String, val name: String, val price: Double, val imageUrl: String?, val isAvailable: Boolean, val description: String? = null, val isFeatured: Boolean = false)
 
 sealed interface RefreshResult {
     data object Success : RefreshResult
@@ -43,7 +43,7 @@ class CatalogRepositoryImpl(
     }
 
     override val menuItems: Flow<List<MenuItem>> = menuItemDao.observeAll().map { entities ->
-        entities.map { MenuItem(it.id, it.categoryId, it.name, it.price, it.imageUrl, it.isAvailable, it.description) }
+        entities.map { MenuItem(it.id, it.categoryId, it.name, it.price, it.imageUrl, it.isAvailable, it.description, it.isFeatured) }
     }
 
     override fun observeOptionGroups(menuItemId: String): Flow<List<OptionGroup>> =
@@ -79,7 +79,7 @@ class CatalogRepositoryImpl(
             categoryDao.clear()
             categoryDao.upsertAll(categoryDtos.map { CategoryEntity(it.id, it.name, it.sortOrder) })
             menuItemDao.clear()
-            menuItemDao.upsertAll(itemDtos.map { MenuItemEntity(it.id, it.categoryId, it.name, it.price, it.imageUrl, it.isAvailable, it.description) })
+            menuItemDao.upsertAll(itemDtos.map { MenuItemEntity(it.id, it.categoryId, it.name, it.price, it.imageUrl, it.isAvailable, it.description, it.isFeatured) })
             optionGroupDao.clear()
             optionGroupDao.upsertAll(groupDtos.mapNotNull { dto ->
                 // Unknown kind/selection (blocked by DB check constraints) is skipped, never a crash.

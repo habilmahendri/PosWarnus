@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -58,6 +59,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -254,6 +257,82 @@ private fun PhoneCartBar(
 }
 
 @Composable
+private fun CatalogHeader(
+    compact: Boolean,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onLogout: () -> Unit,
+) {
+    @Composable
+    fun Brand(modifier: Modifier = Modifier) {
+        BrandMark(background = AccentOrange, foreground = SurfaceWhite, modifier = Modifier.size(32.dp))
+        Column(modifier = modifier) {
+            Text(text = "Warung Nusantara", style = MaterialTheme.typography.bodyLarge)
+            Text(text = "RestoPOS", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+        }
+    }
+
+    @Composable
+    fun LogoutButton() {
+        OutlinedButton(
+            onClick = onLogout,
+            shape = RoundedCornerShape(6.dp),
+            border = BorderStroke(1.dp, LineStrong),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+            modifier = Modifier.heightIn(min = 44.dp),
+        ) {
+            Text("Keluar", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+
+    Column {
+        if (compact) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(SurfaceWhite)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Brand(modifier = Modifier.weight(1f))
+                    LogoutButton()
+                }
+                CatalogSearchField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .background(SurfaceWhite)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Brand(modifier = Modifier.weight(1f, fill = false))
+                Spacer(modifier = Modifier.weight(1f))
+                CatalogSearchField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier.width(320.dp),
+                )
+                LogoutButton()
+            }
+        }
+        HorizontalDivider(color = LineDefault, thickness = 1.dp)
+    }
+}
+
+@Composable
 private fun CatalogPane(
     state: DashboardUiState,
     inCartQuantities: Map<String, Int>,
@@ -272,38 +351,15 @@ private fun CatalogPane(
     ) {
         // Header bar — docs/design-reference.md "Dashboard" § left pane header: 56dp, white,
         // bottom border, brand mark + outlet name, search field, logout action on the right.
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp)
-                    .background(SurfaceWhite)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                BrandMark(background = AccentOrange, foreground = SurfaceWhite, modifier = Modifier.size(32.dp))
-                Column(modifier = Modifier.weight(1f, fill = false)) {
-                    Text(text = "Warung Nusantara", style = MaterialTheme.typography.bodyLarge)
-                    Text(text = "RestoPOS", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                CatalogSearchField(
-                    value = state.searchQuery,
-                    onValueChange = onSearchQueryChanged,
-                    modifier = Modifier.width(320.dp),
-                )
-                OutlinedButton(
-                    onClick = onLogout,
-                    shape = RoundedCornerShape(6.dp),
-                    border = BorderStroke(1.dp, LineStrong),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
-                    modifier = Modifier.heightIn(min = 44.dp),
-                ) {
-                    Text("Keluar", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            HorizontalDivider(color = LineDefault, thickness = 1.dp)
+        // Layout is chosen by this pane's own width, not the window's: on a 840-1040dp window
+        // the catalog pane is only 400-600dp wide and needs the compact header too.
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            CatalogHeader(
+                compact = maxWidth < 600.dp,
+                searchQuery = state.searchQuery,
+                onSearchQueryChange = onSearchQueryChanged,
+                onLogout = onLogout,
+            )
         }
 
         // Category row — docs/design-reference.md "Dashboard" § category row.
@@ -409,6 +465,28 @@ private fun CatalogPane(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    if (state.featuredItems.isNotEmpty()) {
+                        item(key = "featured", span = { GridItemSpan(maxLineSpan) }) {
+                            Column {
+                                Text(
+                                    text = "Menu Unggulan",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(bottom = 8.dp).semantics { heading() },
+                                )
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    items(state.featuredItems, key = { it.id }) { item ->
+                                        MenuItemCard(
+                                            item = item,
+                                            modifier = Modifier.width(176.dp),
+                                            inCartQuantity = inCartQuantities[item.id] ?: 0,
+                                            onClick = { onMenuItemClick(item) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                     items(state.visibleItems, key = { it.id }) { item ->
                         MenuItemCard(
                             item = item,

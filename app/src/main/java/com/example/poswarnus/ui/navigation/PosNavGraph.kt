@@ -1,6 +1,11 @@
 package com.example.poswarnus.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.poswarnus.ui.components.SystemBarIcons
+import com.example.poswarnus.ui.login.WideLayoutMinWidth
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -18,6 +23,13 @@ object PosDestinations {
 
 @Composable
 fun PosNavGraph(navController: NavHostController = rememberNavController()) {
+    val route = navController.currentBackStackEntryAsState().value?.destination?.route
+    val compactWidth = LocalConfiguration.current.screenWidthDp < WideLayoutMinWidth.value
+    // Splash and compact Login sit on the accent colour; everything else is cream/white.
+    SystemBarIcons(
+        lightStatusBarIcons = route == PosDestinations.SPLASH || (route == PosDestinations.LOGIN && compactWidth),
+        lightNavigationBarIcons = route == PosDestinations.SPLASH,
+    )
     NavHost(navController = navController, startDestination = PosDestinations.SPLASH) {
         composable(PosDestinations.SPLASH) {
             SplashScreen(onNavigateToLogin = {
