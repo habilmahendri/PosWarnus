@@ -7,6 +7,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import javax.inject.Singleton
 
 @Module
@@ -15,5 +16,8 @@ object CatalogRemoteModule {
     @Provides
     @Singleton
     fun provideCatalogRemoteDataSource(client: SupabaseClient): CatalogRemoteDataSource =
-        SupabaseCatalogRemoteDataSource(client)
+        SupabaseCatalogRemoteDataSource(
+            client = client,
+            sessionAvailable = { client.auth.currentSessionOrNull() != null },
+        )
 }

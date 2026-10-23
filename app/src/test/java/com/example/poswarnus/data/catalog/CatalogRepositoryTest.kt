@@ -13,6 +13,7 @@ import com.example.poswarnus.data.local.OptionGroupWithOptions
 import com.example.poswarnus.data.remote.CatalogRemoteDataSource
 import com.example.poswarnus.data.remote.CategoryDto
 import com.example.poswarnus.data.remote.MenuItemDto
+import com.example.poswarnus.data.remote.NoSessionException
 import com.example.poswarnus.data.remote.OptionDto
 import com.example.poswarnus.data.remote.OptionGroupDto
 import kotlinx.coroutines.flow.Flow
@@ -266,6 +267,23 @@ class CatalogRepositoryTest {
             optionGroupsResult = Result.failure(RuntimeException("groups down")),
             optionsResult = Result.success(listOf(optionDto)),
         ))
+        prePopulated(f)
+
+        assertTrue(f.repository.refresh() is RefreshResult.Failure)
+        assertUntouched(f)
+    }
+
+    @Test
+    fun `option fetch without a session returns Failure and leaves all four stores untouched`() = runTest {
+        // Mirrors SupabaseCatalogRemoteDataSource: anon reads of the RLS-protected option tables
+        // would return [] and wipe the cache, so the source throws when no session exists.
+        val noSession = object : CatalogRemoteDataSource {
+            override suspend fun fetchCategories() = listOf(CategoryDto("a", "Makanan", 1))
+            override suspend fun fetchMenuItems() = listOf(MenuItemDto("1", "a", "Nasi Goreng", 25000.0, null, true))
+            override suspend fun fetchOptionGroups(): List<OptionGroupDto> = throw NoSessionException()
+            override suspend fun fetchOptions(): List<OptionDto> = throw NoSessionException()
+        }
+        val f = Fixture(noSession)
         prePopulated(f)
 
         assertTrue(f.repository.refresh() is RefreshResult.Failure)
