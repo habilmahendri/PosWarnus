@@ -31,7 +31,7 @@ class AppDatabaseMigrationTest {
         raw.close()
 
         val db = Room.databaseBuilder(context, AppDatabase::class.java, file.absolutePath)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
         try {
@@ -77,7 +77,7 @@ class AppDatabaseMigrationTest {
         raw.close()
 
         val db = Room.databaseBuilder(context, AppDatabase::class.java, file.absolutePath)
-            .addMigrations(MIGRATION_2_3)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
         try {
@@ -90,6 +90,50 @@ class AppDatabaseMigrationTest {
             val groups = db.optionGroupDao().observeForItem("m1").first()
             assertEquals(listOf("g1"), groups.map { it.group.id })
             assertEquals(listOf("o1"), groups.single().options.map { it.id })
+        } finally {
+            db.close()
+            file.delete()
+        }
+    }
+
+    @Test
+    fun `v3 database upgrades with MIGRATION_3_4 keeping catalog rows and creating the new tables`() = runTest {
+        val context = RuntimeEnvironment.getApplication()
+        val file = File(context.cacheDir, "migration_test_v3.db").apply { delete() }
+
+        val raw = SQLiteDatabase.openOrCreateDatabase(file, null)
+        raw.execSQL("CREATE TABLE IF NOT EXISTS categories (id TEXT NOT NULL, name TEXT NOT NULL, sortOrder INTEGER NOT NULL, PRIMARY KEY(id))")
+        raw.execSQL(
+            "CREATE TABLE IF NOT EXISTS menu_items (id TEXT NOT NULL, categoryId TEXT NOT NULL, name TEXT NOT NULL, " +
+                "price REAL NOT NULL, imageUrl TEXT, isAvailable INTEGER NOT NULL, description TEXT, " +
+                "isFeatured INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(id))",
+        )
+        raw.execSQL(
+            "CREATE TABLE IF NOT EXISTS option_groups (id TEXT NOT NULL, menuItemId TEXT NOT NULL, name TEXT NOT NULL, " +
+                "kind TEXT NOT NULL, selection TEXT NOT NULL, isRequired INTEGER NOT NULL, sortOrder INTEGER NOT NULL, PRIMARY KEY(id))",
+        )
+        raw.execSQL("CREATE INDEX IF NOT EXISTS index_option_groups_menuItemId ON option_groups (menuItemId)")
+        raw.execSQL(
+            "CREATE TABLE IF NOT EXISTS options (id TEXT NOT NULL, groupId TEXT NOT NULL, name TEXT NOT NULL, " +
+                "priceDelta INTEGER NOT NULL, sortOrder INTEGER NOT NULL, isAvailable INTEGER NOT NULL, PRIMARY KEY(id))",
+        )
+        raw.execSQL("CREATE INDEX IF NOT EXISTS index_options_groupId ON options (groupId)")
+        raw.execSQL("INSERT INTO categories VALUES ('c1', 'Makanan', 1)")
+        raw.execSQL("INSERT INTO menu_items VALUES ('m1', 'c1', 'Nasi Goreng', 25000.0, NULL, 1, 'Pedas', 1)")
+        raw.version = 3
+        raw.close()
+
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, file.absolutePath)
+            .addMigrations(MIGRATION_3_4)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            val items = db.menuItemDao().observeAll().first()
+            assertEquals(listOf("Nasi Goreng"), items.map { it.name })
+            assertEquals(true, items.single().isFeatured)
+            assertEquals(listOf("Makanan"), db.categoryDao().observeAll().first().map { it.name })
+            assertEquals(emptyList<TransactionEntity>(), db.transactionDao().observeAll().first())
+            assertNull(db.taxSettingsDao().observe().first())
         } finally {
             db.close()
             file.delete()

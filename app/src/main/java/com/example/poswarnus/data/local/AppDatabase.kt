@@ -7,8 +7,11 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [CategoryEntity::class, MenuItemEntity::class, OptionGroupEntity::class, OptionEntity::class],
-    version = 3,
+    entities = [
+        CategoryEntity::class, MenuItemEntity::class, OptionGroupEntity::class, OptionEntity::class,
+        TaxSettingsEntity::class, TransactionEntity::class, TransactionLineEntity::class,
+    ],
+    version = 4,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -16,6 +19,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun menuItemDao(): MenuItemDao
     abstract fun optionGroupDao(): OptionGroupDao
     abstract fun optionDao(): OptionDao
+    abstract fun taxSettingsDao(): TaxSettingsDao
+    abstract fun transactionDao(): TransactionDao
 }
 
 /** v1 -> v2: menu item description plus option groups/options. Keeps the cached catalog (offline-safe). */
@@ -39,6 +44,25 @@ val MIGRATION_1_2: Migration = object : Migration(1, 2) {
 val MIGRATION_2_3: Migration = object : Migration(2, 3) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE menu_items ADD COLUMN isFeatured INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+/** v3 -> v4: cached tax config plus locally stored sales. Purely additive; the catalog cache is untouched. */
+val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `tax_settings` (`id` INTEGER NOT NULL, `label` TEXT NOT NULL, `basisPoints` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `transactions` (`id` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `cashierId` TEXT NOT NULL, " +
+                "`subtotal` INTEGER NOT NULL, `taxLabel` TEXT NOT NULL, `taxBasisPoints` INTEGER NOT NULL, `taxAmount` INTEGER NOT NULL, " +
+                "`grandTotal` INTEGER NOT NULL, `cashReceived` INTEGER NOT NULL, `changeAmount` INTEGER NOT NULL, " +
+                "`isTraining` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `transaction_lines` (`id` TEXT NOT NULL, `transactionId` TEXT NOT NULL, `menuItemId` TEXT NOT NULL, " +
+                "`name` TEXT NOT NULL, `basePrice` INTEGER NOT NULL, `quantity` INTEGER NOT NULL, `selectionsJson` TEXT NOT NULL, " +
+                "PRIMARY KEY(`id`), FOREIGN KEY(`transactionId`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_lines_transactionId` ON `transaction_lines` (`transactionId`)")
     }
 }
 
