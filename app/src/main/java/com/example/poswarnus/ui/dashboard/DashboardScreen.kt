@@ -66,15 +66,11 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.poswarnus.data.auth.AuthRepository
 import com.example.poswarnus.data.catalog.MenuItem
 import com.example.poswarnus.ui.cart.CartPanel
-import com.example.poswarnus.data.training.TrainingModeStore
-import com.example.poswarnus.ui.cart.CartStore
 import com.example.poswarnus.ui.cart.CartViewModel
 import com.example.poswarnus.ui.cart.MenuDetailDialog
+import com.example.poswarnus.ui.navigation.LogoutViewModel
 import com.example.poswarnus.ui.payment.PaymentDialog
 import com.example.poswarnus.ui.payment.PaymentViewModel
 import com.example.poswarnus.ui.components.BrandMark
@@ -92,26 +88,6 @@ import com.example.poswarnus.ui.theme.LineStrong
 import com.example.poswarnus.ui.theme.SurfaceWhite
 import com.example.poswarnus.ui.theme.TextPrimary
 import com.example.poswarnus.ui.theme.TextSecondary
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.launch
-import javax.inject.Inject
-
-@HiltViewModel
-class LogoutViewModel @Inject constructor(
-    private val authRepository: AuthRepository,
-    private val cartStore: CartStore,
-    private val trainingModeStore: TrainingModeStore,
-) : ViewModel() {
-    fun logout(onLoggedOut: () -> Unit) {
-        viewModelScope.launch {
-            authRepository.logout()
-            // One cashier's order must never leak into the next session.
-            cartStore.clear()
-            trainingModeStore.reset()
-            onLoggedOut()
-        }
-    }
-}
 
 // Cart panel is fixed-width per the mockup (docs/design-reference.md "Dashboard" § right pane),
 // not a proportion of the window — only the catalog pane stretches with available space.
