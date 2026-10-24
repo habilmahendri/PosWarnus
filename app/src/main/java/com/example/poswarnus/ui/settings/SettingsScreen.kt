@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.poswarnus.ui.components.ArrowBackGlyph
 import com.example.poswarnus.ui.components.TrainingBanner
+import com.example.poswarnus.ui.navigation.isWideWindow
 import com.example.poswarnus.ui.theme.AccentOrange
 import com.example.poswarnus.ui.theme.BackgroundCream
 import com.example.poswarnus.ui.theme.LineDefault
@@ -68,11 +71,15 @@ fun SettingsScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.size(48.dp).semantics { contentDescription = "Kembali" },
-            ) {
-                ArrowBackGlyph(tint = TextPrimary, modifier = Modifier.size(24.dp))
+            if (!isWideWindow()) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.size(48.dp).semantics { contentDescription = "Kembali" },
+                ) {
+                    ArrowBackGlyph(tint = TextPrimary, modifier = Modifier.size(24.dp))
+                }
+            } else {
+                Spacer(Modifier.width(8.dp))
             }
             Text(
                 text = "Pengaturan",

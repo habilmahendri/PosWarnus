@@ -314,6 +314,17 @@ fun StorefrontGlyph(tint: Color, modifier: Modifier = Modifier) {
     }
 }
 
+/** Three horizontal bars, the menu button glyph. */
+@Composable
+fun MenuGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val u = size.minDimension / 24f
+        listOf(6f, 12f, 18f).forEach { y ->
+            drawLine(tint, Offset(4f * u, y * u), Offset(20f * u, y * u), 2f * u, StrokeCap.Round)
+        }
+    }
+}
+
 /** A door frame open on the right with an arrow leaving it. */
 @Composable
 fun LogoutGlyph(tint: Color, modifier: Modifier = Modifier) {

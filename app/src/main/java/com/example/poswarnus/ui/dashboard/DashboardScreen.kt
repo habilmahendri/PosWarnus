@@ -70,14 +70,13 @@ import com.example.poswarnus.data.catalog.MenuItem
 import com.example.poswarnus.ui.cart.CartPanel
 import com.example.poswarnus.ui.cart.CartViewModel
 import com.example.poswarnus.ui.cart.MenuDetailDialog
-import com.example.poswarnus.ui.navigation.LogoutViewModel
+import com.example.poswarnus.ui.navigation.isWideWindow
 import com.example.poswarnus.ui.payment.PaymentDialog
 import com.example.poswarnus.ui.payment.PaymentViewModel
 import com.example.poswarnus.ui.components.BrandMark
 import com.example.poswarnus.ui.components.CloseGlyph
-import com.example.poswarnus.ui.components.HistoryGlyph
+import com.example.poswarnus.ui.components.MenuGlyph
 import com.example.poswarnus.ui.components.SearchGlyph
-import com.example.poswarnus.ui.components.SettingsGlyph
 import com.example.poswarnus.ui.components.TrainingBanner
 import com.example.poswarnus.ui.components.TrainingBannerColors
 import com.example.poswarnus.ui.training.TrainingBannerViewModel
@@ -92,7 +91,6 @@ import com.example.poswarnus.ui.theme.TextSecondary
 // Cart panel is fixed-width per the mockup (docs/design-reference.md "Dashboard" § right pane),
 // not a proportion of the window — only the catalog pane stretches with available space.
 private val CartPaneWidth = 440.dp
-private val TabletBreakpoint = 840.dp
 // Height of the phone order bar's content (excluding the navigation-bar inset it also pads).
 private val PhoneCartBarHeight = 72.dp
 private val GridBottomPadding = 16.dp
@@ -100,11 +98,8 @@ private val GridBottomPadding = 16.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    onLoggedOut: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenHistory: () -> Unit,
+    onOpenMenu: () -> Unit,
     dashboardViewModel: DashboardViewModel = hiltViewModel(),
-    logoutViewModel: LogoutViewModel = hiltViewModel(),
     cartViewModel: CartViewModel = hiltViewModel(),
     paymentViewModel: PaymentViewModel = hiltViewModel(),
     trainingBannerViewModel: TrainingBannerViewModel = hiltViewModel(),
@@ -117,7 +112,7 @@ fun DashboardScreen(
     var showCartSheet by rememberSaveable { mutableStateOf(false) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BackgroundCream)) {
-        val isTablet = maxWidth >= TabletBreakpoint
+        val isTablet = isWideWindow()
         val windowHeight = maxHeight
         val showPhoneBar = !isTablet && hasLines
 
@@ -169,9 +164,7 @@ fun DashboardScreen(
                 onCategorySelected = dashboardViewModel::onCategorySelected,
                 onSearchQueryChanged = dashboardViewModel::onSearchQueryChanged,
                 onRefresh = dashboardViewModel::refresh,
-                onLogout = { logoutViewModel.logout(onLoggedOut) },
-                onOpenSettings = onOpenSettings,
-                onOpenHistory = onOpenHistory,
+                onOpenMenu = onOpenMenu,
                 modifier = Modifier.weight(1f),
             )
             if (isTablet) {
@@ -287,11 +280,11 @@ private fun CatalogHeader(
     compact: Boolean,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    onLogout: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenHistory: () -> Unit,
+    onOpenMenu: () -> Unit,
     syncPill: SyncPill,
 ) {
+    val showMenu = !isWideWindow()
+
     @Composable
     fun Brand(modifier: Modifier = Modifier) {
         BrandMark(background = AccentOrange, foreground = SurfaceWhite, modifier = Modifier.size(32.dp))
@@ -313,35 +306,14 @@ private fun CatalogHeader(
     }
 
     @Composable
-    fun HistoryButton() {
-        IconButton(
-            onClick = onOpenHistory,
-            modifier = Modifier.size(48.dp).semantics { contentDescription = "Riwayat transaksi" },
-        ) {
-            HistoryGlyph(tint = TextPrimary, modifier = Modifier.size(24.dp))
-        }
-    }
-
-    @Composable
-    fun SettingsButton() {
-        IconButton(
-            onClick = onOpenSettings,
-            modifier = Modifier.size(48.dp).semantics { contentDescription = "Pengaturan" },
-        ) {
-            SettingsGlyph(tint = TextPrimary, modifier = Modifier.size(24.dp))
-        }
-    }
-
-    @Composable
-    fun LogoutButton() {
-        OutlinedButton(
-            onClick = onLogout,
-            shape = RoundedCornerShape(6.dp),
-            border = BorderStroke(1.dp, LineStrong),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
-            modifier = Modifier.heightIn(min = 44.dp),
-        ) {
-            Text("Keluar", style = MaterialTheme.typography.bodyMedium)
+    fun MenuButton() {
+        if (showMenu) {
+            IconButton(
+                onClick = onOpenMenu,
+                modifier = Modifier.size(48.dp).semantics { contentDescription = "Menu" },
+            ) {
+                MenuGlyph(tint = TextPrimary, modifier = Modifier.size(24.dp))
+            }
         }
     }
 
@@ -359,11 +331,9 @@ private fun CatalogHeader(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    MenuButton()
                     Brand(modifier = Modifier.weight(1f))
                     SyncStatusPill(pill = syncPill)
-                    HistoryButton()
-                    SettingsButton()
-                    LogoutButton()
                 }
                 CatalogSearchField(
                     value = searchQuery,
@@ -383,6 +353,7 @@ private fun CatalogHeader(
             ) {
                 // The brand takes all the slack; a fill=false weight beside a Spacer would hand it only
                 // half of what is left and ellipsize the title once the sync pill is on screen.
+                MenuButton()
                 Brand(modifier = Modifier.weight(1f))
                 SyncStatusPill(pill = syncPill)
                 CatalogSearchField(
@@ -390,9 +361,6 @@ private fun CatalogHeader(
                     onValueChange = onSearchQueryChange,
                     modifier = Modifier.width(320.dp),
                 )
-                HistoryButton()
-                SettingsButton()
-                LogoutButton()
             }
         }
         HorizontalDivider(color = LineDefault, thickness = 1.dp)
@@ -408,9 +376,7 @@ private fun CatalogPane(
     onCategorySelected: (String?) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     onRefresh: () -> Unit,
-    onLogout: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenHistory: () -> Unit,
+    onOpenMenu: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -427,9 +393,7 @@ private fun CatalogPane(
                 compact = maxWidth < 600.dp,
                 searchQuery = state.searchQuery,
                 onSearchQueryChange = onSearchQueryChanged,
-                onLogout = onLogout,
-                onOpenSettings = onOpenSettings,
-                onOpenHistory = onOpenHistory,
+                onOpenMenu = onOpenMenu,
                 syncPill = state.syncPill,
             )
         }

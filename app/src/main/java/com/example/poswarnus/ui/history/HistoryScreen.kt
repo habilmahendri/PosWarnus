@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -59,6 +58,7 @@ import com.example.poswarnus.ui.components.ArrowBackGlyph
 import com.example.poswarnus.ui.components.SearchGlyph
 import com.example.poswarnus.ui.components.TrainingBanner
 import com.example.poswarnus.ui.dashboard.formatRupiah
+import com.example.poswarnus.ui.navigation.isWideWindow
 import com.example.poswarnus.ui.theme.AccentOrange
 import com.example.poswarnus.ui.theme.AccentOrangeDark
 import com.example.poswarnus.ui.theme.AccentTint
@@ -72,7 +72,6 @@ import com.example.poswarnus.ui.theme.TextPrimary
 import com.example.poswarnus.ui.theme.TextSecondary
 import com.example.poswarnus.ui.training.TrainingBannerViewModel
 
-private val HistoryWideMinWidth = 840.dp
 private val ListPaneWidth = 520.dp
 private val PanelShape = RoundedCornerShape(6.dp)
 
@@ -85,13 +84,13 @@ fun HistoryScreen(
     val state by viewModel.uiState.collectAsState()
     val training by trainingViewModel.enabled.collectAsState()
 
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundCream)
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        val wide = maxWidth >= HistoryWideMinWidth
+        val wide = isWideWindow()
         val showingDetailOnly = !wide && state.detailOpen && state.selected != null
 
         BackHandler(enabled = showingDetailOnly) { viewModel.onCloseDetail() }
@@ -100,6 +99,7 @@ fun HistoryScreen(
             if (training) TrainingBanner()
             HistoryTopBar(
                 summary = state.summary,
+                showBack = !wide,
                 onBack = if (showingDetailOnly) viewModel::onCloseDetail else onBack,
             )
             HorizontalDivider(color = LineDefault, thickness = 1.dp)
@@ -138,7 +138,7 @@ fun HistoryScreen(
 }
 
 @Composable
-private fun HistoryTopBar(summary: String, onBack: () -> Unit) {
+private fun HistoryTopBar(summary: String, showBack: Boolean, onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -148,11 +148,15 @@ private fun HistoryTopBar(summary: String, onBack: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.size(48.dp).semantics { contentDescription = "Kembali ke kasir" },
-        ) {
-            ArrowBackGlyph(tint = TextPrimary, modifier = Modifier.size(24.dp))
+        if (showBack) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.size(48.dp).semantics { contentDescription = "Kembali ke kasir" },
+            ) {
+                ArrowBackGlyph(tint = TextPrimary, modifier = Modifier.size(24.dp))
+            }
+        } else {
+            Spacer(Modifier.width(8.dp))
         }
         Text(
             text = "Riwayat transaksi",
