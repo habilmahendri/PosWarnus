@@ -9,6 +9,7 @@ import com.example.poswarnus.ui.cart.CartLine
 import com.example.poswarnus.ui.cart.OrderTotals
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 /** Everything a sale needs, frozen when the payment dialog opened. [id] is reused on retry. */
@@ -26,6 +27,9 @@ interface TransactionRepository {
 
     /** Live counts behind the sync pill (training sales excluded). */
     val syncSummary: Flow<SyncSummary>
+
+    /** The signed-in cashier's real sales created at or after [fromMillis], newest first. Empty when nobody is signed in. */
+    fun observeHistory(fromMillis: Long): Flow<List<HistoryEntry>>
 }
 
 class TransactionRepositoryImpl(
@@ -37,6 +41,11 @@ class TransactionRepositoryImpl(
     // session after login, so the id is already the signed-in cashier's when it collects this flow.
     override val syncSummary: Flow<SyncSummary>
         get() = dao.observeSyncSummary(currentCashierId() ?: "").map { SyncSummary(it.pendingCount, it.offlineCount, it.lastSyncedAt) }
+
+    override fun observeHistory(fromMillis: Long): Flow<List<HistoryEntry>> {
+        val cashierId = currentCashierId() ?: return flowOf(emptyList())
+        return dao.observeHistory(cashierId, fromMillis).map { rows -> rows.map { it.toHistoryEntry() } }
+    }
 
     override suspend fun save(sale: SaleSnapshot, cashReceived: Long): Result<Unit> =
         try {

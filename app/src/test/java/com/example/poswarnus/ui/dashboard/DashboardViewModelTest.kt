@@ -10,6 +10,7 @@ import com.example.poswarnus.data.sync.FakeSyncScheduler
 import com.example.poswarnus.data.tax.TaxConfig
 import com.example.poswarnus.data.sync.SyncSummary
 import com.example.poswarnus.data.tax.TaxRepository
+import com.example.poswarnus.data.transaction.HistoryEntry
 import com.example.poswarnus.data.transaction.SaleSnapshot
 import com.example.poswarnus.data.transaction.TransactionRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -60,6 +61,8 @@ private class FakeSummaryTransactionRepository : TransactionRepository {
     override val syncSummary: Flow<SyncSummary> = summary
 
     override suspend fun save(sale: SaleSnapshot, cashReceived: Long): Result<Unit> = Result.success(Unit)
+
+    override fun observeHistory(fromMillis: Long): Flow<List<HistoryEntry>> = flowOf(emptyList())
 }
 
 private val makanan = Category("a", "Makanan", 1)

@@ -2,6 +2,7 @@ package com.example.poswarnus.data.local
 
 import androidx.room.ColumnInfo
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -9,6 +10,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Relation
 import androidx.room.Transaction
 import com.example.poswarnus.data.sync.SyncStatus
 import kotlinx.coroutines.flow.Flow
@@ -58,6 +60,12 @@ data class TransactionLineEntity(
     val selectionsJson: String,
 )
 
+/** A sale header with its lines, for the history list. Line order is not guaranteed; sort by the id suffix. */
+data class TransactionWithLines(
+    @Embedded val header: TransactionEntity,
+    @Relation(parentColumn = "id", entityColumn = "transactionId") val lines: List<TransactionLineEntity>,
+)
+
 @Dao
 abstract class TransactionDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -103,4 +111,11 @@ abstract class TransactionDao {
           FROM transactions WHERE isTraining = 0 AND cashierId = :cashierId""",
     )
     abstract fun observeSyncSummary(cashierId: String): Flow<SyncSummaryRow>
+
+    /** Real sales of [cashierId] created at or after [fromMillis], newest first, with their lines. */
+    @Transaction
+    @Query(
+        "SELECT * FROM transactions WHERE cashierId = :cashierId AND isTraining = 0 AND createdAt >= :fromMillis ORDER BY createdAt DESC, id",
+    )
+    abstract fun observeHistory(cashierId: String, fromMillis: Long): Flow<List<TransactionWithLines>>
 }

@@ -7,6 +7,7 @@ import com.example.poswarnus.data.sync.SyncSummary
 import com.example.poswarnus.data.tax.TaxRepository
 import com.example.poswarnus.data.training.TrainingModeStore
 import com.example.poswarnus.data.transaction.SaleSnapshot
+import com.example.poswarnus.data.transaction.HistoryEntry
 import com.example.poswarnus.data.transaction.TransactionRepository
 import com.example.poswarnus.ui.cart.CartLine
 import com.example.poswarnus.ui.cart.CartStore
@@ -44,6 +45,8 @@ private class FakeTransactionRepository : TransactionRepository {
         gate?.await()
         return results.removeFirstOrNull() ?: Result.success(Unit)
     }
+
+    override fun observeHistory(fromMillis: Long): Flow<List<HistoryEntry>> = flowOf(emptyList())
 }
 
 private class FakeAuth(var userId: String? = "user-1") : AuthRepository {

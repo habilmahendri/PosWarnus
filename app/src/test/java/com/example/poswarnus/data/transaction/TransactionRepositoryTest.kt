@@ -7,6 +7,7 @@ import com.example.poswarnus.data.local.SyncSummaryRow
 import com.example.poswarnus.data.local.TransactionDao
 import com.example.poswarnus.data.local.TransactionEntity
 import com.example.poswarnus.data.local.TransactionLineEntity
+import com.example.poswarnus.data.local.TransactionWithLines
 import com.example.poswarnus.data.sync.FakeSyncScheduler
 import com.example.poswarnus.data.sync.SyncSummary
 import com.example.poswarnus.data.tax.TaxConfig
@@ -146,6 +147,30 @@ class TransactionRepositoryTest {
         assertEquals(SyncSummary(0, 0, null), repository.syncSummary.first())
     }
 
+    @Test
+    fun `observeHistory maps a saved sale and drops the badge after markSynced`() = runTest {
+        repository.save(sale, cashReceived = 50000)
+
+        val before = repository.observeHistory(0L).first().single()
+        assertEquals("tx-1", before.id)
+        assertEquals("#TX1", before.code)
+        assertEquals(44000L, before.grandTotal)
+        assertEquals(listOf("Nasi Goreng", "Es Teh"), before.lines.map { it.name })
+        assertEquals("Large", before.lines[0].meta)
+        assertEquals(3, before.itemCount)
+        assertTrue(before.isPending)
+
+        db.transactionDao().markSynced("tx-1", 2_000L)
+        assertFalse(repository.observeHistory(0L).first().single().isPending)
+    }
+
+    @Test
+    fun `observeHistory is empty when nobody is signed in`() = runTest {
+        repository.save(sale, cashReceived = 50000)
+        currentCashier = null
+        assertEquals(emptyList<HistoryEntry>(), repository.observeHistory(0L).first())
+    }
+
     private fun SaleSnapshot.toHeader(txId: String, cashier: String) = TransactionEntity(
         id = txId, createdAt = createdAt, cashierId = cashier, subtotal = totals.subtotal, taxLabel = totals.taxLabel,
         taxBasisPoints = totals.taxBasisPoints, taxAmount = totals.taxAmount, grandTotal = totals.grandTotal,
@@ -166,6 +191,7 @@ class TransactionRepositoryTest {
             override suspend fun markSynced(id: String, at: Long) = Unit
             override suspend fun recordFailure(id: String, error: String) = Unit
             override fun observeSyncSummary(cashierId: String): Flow<SyncSummaryRow> = flowOf(SyncSummaryRow(0, 0, null))
+            override fun observeHistory(cashierId: String, fromMillis: Long): Flow<List<TransactionWithLines>> = flowOf(emptyList())
         }
     }
 }

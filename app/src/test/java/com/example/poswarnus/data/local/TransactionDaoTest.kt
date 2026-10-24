@@ -174,6 +174,39 @@ class TransactionDaoTest {
     }
 
     @Test
+    fun `observeHistory returns newest first with id as tie-break`() = runTest {
+        dao.insertSale(header("b", createdAt = 5), listOf(line("b:0", tx = "b")))
+        dao.insertSale(header("a", createdAt = 5), emptyList())
+        dao.insertSale(header("c", createdAt = 9), emptyList())
+        dao.insertSale(header("d", createdAt = 1), emptyList())
+        val history = dao.observeHistory("u1", Long.MIN_VALUE).first()
+        assertEquals(listOf("c", "a", "b", "d"), history.map { it.header.id })
+        assertEquals(listOf("b:0"), history.single { it.header.id == "b" }.lines.map { it.id })
+    }
+
+    @Test
+    fun `observeHistory only returns the requested cashier`() = runTest {
+        dao.insertSale(header("a", cashierId = "u1"), emptyList())
+        dao.insertSale(header("b", cashierId = "u2"), emptyList())
+        assertEquals(listOf("a"), dao.observeHistory("u1", Long.MIN_VALUE).first().map { it.header.id })
+        assertEquals(emptyList<String>(), dao.observeHistory("u3", Long.MIN_VALUE).first().map { it.header.id })
+    }
+
+    @Test
+    fun `observeHistory excludes training sales`() = runTest {
+        dao.insertSale(header("a"), emptyList())
+        dao.insertSale(header("t", isTraining = true), emptyList())
+        assertEquals(listOf("a"), dao.observeHistory("u1", Long.MIN_VALUE).first().map { it.header.id })
+    }
+
+    @Test
+    fun `observeHistory fromMillis is inclusive`() = runTest {
+        dao.insertSale(header("early", createdAt = 99), emptyList())
+        dao.insertSale(header("edge", createdAt = 100), emptyList())
+        assertEquals(listOf("edge"), dao.observeHistory("u1", 100).first().map { it.header.id })
+    }
+
+    @Test
     fun `new rows default to PENDING with zero attempts`() = runTest {
         dao.insertSale(header(), listOf(line("t1:0")))
         val r = row("t1")
