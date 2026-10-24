@@ -13,7 +13,7 @@ Status as of 2026-10-23. Source of truth for scope is [PRD-pos.md](PRD-pos.md); 
 | 4 | Tax/service charge, cash Payment, Payment Success, local transaction storage (UUID, `isTraining` flag from day one), "Bayar" goes live | 4.6, 4.7, 4.8, part of 4.9 | Done (merged to `main` locally, not pushed); `tax_settings` applied to the live Supabase and verified on the tablet emulator |
 | 5 | Offline sync engine: send queue, idempotent upsert, offline / last-synced indicator, transactions tables in Supabase | rest of 4.9 | Done (merged to `main` locally, not pushed); `20261024000000_add_transactions_sync.sql` and its fix `20261024100000_fix_submit_transaction_security_definer.sql` applied to the live Supabase on 2026-10-24; uploads verified end to end on the tablet emulator and on the server |
 | 6a | Settings screen + Training Mode (toggle, banner, no persistence or sync while on) | 4.13, Settings part of 4.10 | Done (merged to `main` locally, not pushed); verified on the tablet emulator and at phone size |
-| 7 | Transaction History (incl. "pending sync") | 4.11 | Planned (next) |
+| 7 | Transaction History (incl. "pending sync") | 4.11 | Done on branch `worktree-phase7-transaction-history` (not merged, not pushed); verified on the tablet emulator and at phone size |
 | 8 | "Frequently bought together" suggestions in the cart | 4.14 | Planned |
 | 9 | Bluetooth receipt printing (formerly 6b): printer pairing in Settings, formatted receipt, "LATIHAN" receipt marker, "Cetak struk" goes live | rest of 4.10, receipt part of 4.13 | Planned, deliberately last: the owner is still ordering the Bluetooth printer (2026-10-24), so it cannot be built or tested on hardware yet (own spec) |
 
@@ -123,6 +123,18 @@ NOT verified: logout resetting the flag on a device (covered by a unit test only
 
 Deferred minors: the status-bar strip above the banner stays cream on Settings (amber on Dashboard); the 14sp banner may ellipsize at large font scale; unindented `Column` wraps in `DashboardScreen` and `SuccessScreen`; import order nits.
 
+## Phase 7 status (2026-10-24)
+
+Spec: `docs/superpowers/specs/2026-10-24-transaction-history-design.md`; plan: `docs/superpowers/plans/2026-10-24-pos-transaction-history.md`; UI from the owner's design canvas (artboards `History-*`). Decisions: only the signed-in cashier's real sales; order code `#A3F9C1` from the UUID (no order numbers exist); no "Kasir:" line; tabs "Hari ini" and "Kemarin" only; a disabled "Cetak Ulang Struk (segera hadir)" footer until Phase 9. Additions beyond the design: a "Menunggu sinkron" chip (PRD 4.11), Subtotal and tax rows in the detail, and the training banner on the history screen.
+
+Implemented on the branch: `TransactionDao.observeHistory` (`@Relation`, no schema change), `HistoryEntry`/`HistoryLine` and `shortCode`, `TransactionRepository.observeHistory`, `HistoryViewModel` (injectable clock and time zone, day split, search, selection), `HistoryScreen` (two panes on wide screens; list then detail on narrow ones) with the `history` route, and a history icon before the gear in the catalog header. Every task had a Sonnet implementer and a Sonnet reviewer; the whole-branch review found no Critical or Important issue.
+
+Verified on the tablet emulator (live Supabase): the icon opens the screen; two sales listed newest first with code, `HH.mm`, item count and names; the header sums "2 transaksi · Rp55.000"; detail shows "Large · Sedang · Extra Keju", Subtotal Rp43.000, Pajak 10% Rp4.300, Total Rp47.300, tunai Rp50.000, kembalian Rp2.700 and the disabled print button; a sale made with Wi-Fi off showed the "Menunggu sinkron" chip in the list and the detail, and after Wi-Fi came back both chips disappeared on their own while the screen stayed open (one live Room flow across the `@Relation`); search by part of the code, and "bakso" gives "Transaksi tidak ditemukan"; "Kemarin" shows "Belum ada transaksi"; phone size (1080x2400): header fits (brand ellipsizes first), list, detail in place of the list, Back returns to the list and then leaves. The emulator had been re-created with an empty database and a stale clock (7 Oct), so these sales are new test data on the live `transactions` table.
+
+NOT verified: a training sale being absent (structural: training never persists since 6a, and the DAO excludes it; covered by the DAO test); a second cashier seeing none of the first one's sales (one test account; covered by the DAO and ViewModel tests); whether "Belum ada transaksi" flashes before the first Room emission (not visible at screenshot speed); rotation between wide and narrow; TalkBack; a physical device; the midnight rollover on a device (unit-tested only).
+
+Deferred minors: `onSelect` opens the detail state even on wide screens (resizing to narrow then opens the detail); the search field has no IME action, clear button or TalkBack label, and keeps the query and keyboard when switching tabs; the history lower bound is fixed at screen creation (a time-zone change eastward while open can hide the earliest "Kemarin" rows); an empty tax label would render " 10%"; the initial empty-state flash; `SimpleDateFormat` per row; the 44dp day tabs follow the owner's design.
+
 ## Phase 6 contents (Settings, Bluetooth receipt printing, Training Mode)
 
 PRD: 4.10, 4.13. Split on 2026-10-24: Settings and Training Mode shipped as Phase 6a (see its status above); every printing item below (pairing, receipt, unreachable-printer handling, the "LATIHAN" receipt marker) moved to Phase 9, the last phase, because the printer is not here yet.
@@ -174,4 +186,6 @@ Technical follow-ups (small, from Phases 4-5):
 - **Auth:** `AuthRepositoryImpl.isLoggedIn()` clears the stored session on any failed restore, including a network timeout at app start (Phase 1 bug); `ensureSessionForSync()` may overwrite the cached cashier id with null and does not refresh it when the live session exists.
 - **Tests:** the scheduler test cannot tell REPLACE from KEEP; the "failed row not re-read" syncer test hangs instead of failing if the cursor stops advancing; `NonCancellable` around `recordFailure` has no test that can fail (the fake never yields).
 - **Cart:** a cart whose grand total is Rp0 opens the payment screen but cannot be confirmed; tax refresh failures are silent (no log).
-- **Data cleanup:** the 8 emulator test sales on the live Supabase `transactions` table (and the 7 older ones in the emulator database) are test data.
+- **Data cleanup:** the emulator test sales on the live Supabase `transactions` table (8 from Phase 5, plus the Phase 6a and Phase 7 verification sales) are test data; the emulator's own database was re-created.
+- **History reach:** sales older than yesterday are stored and synced but cannot be opened in the app (Phase 7 only has "Hari ini" and "Kemarin"); idea: an "Semua" tab or a date picker.
+- **Emulator clock:** the re-created emulator's clock was 17 days behind the server; `received_at` exposes it (same as in Phase 5).
