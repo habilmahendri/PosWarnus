@@ -12,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.poswarnus.ui.dashboard.DashboardScreen
+import com.example.poswarnus.ui.history.HistoryScreen
 import com.example.poswarnus.ui.login.LoginScreen
 import com.example.poswarnus.ui.settings.SettingsScreen
 import com.example.poswarnus.ui.splash.SplashScreen
@@ -21,6 +22,7 @@ object PosDestinations {
     const val LOGIN = "login"
     const val DASHBOARD = "dashboard"
     const val SETTINGS = "settings"
+    const val HISTORY = "history"
 }
 
 @Composable
@@ -63,6 +65,9 @@ fun PosNavGraph(navController: NavHostController = rememberNavController()) {
         }
         composable(PosDestinations.SETTINGS) {
             SettingsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(PosDestinations.HISTORY) {
+            HistoryScreen(onBack = { navController.popBackStack() })
         }
     }
 }
