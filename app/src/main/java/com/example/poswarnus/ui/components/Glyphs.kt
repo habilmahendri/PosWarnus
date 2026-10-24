@@ -278,3 +278,65 @@ fun HistoryGlyph(tint: Color, modifier: Modifier = Modifier) {
         drawPath(hand, tint, style = style)
     }
 }
+
+/** A storefront: scalloped awning over a body with a door. */
+@Composable
+fun StorefrontGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val u = size.minDimension / 24f
+        val style = Stroke(
+            width = 2f * u,
+            cap = StrokeCap.Round,
+            join = androidx.compose.ui.graphics.StrokeJoin.Round,
+        )
+        val awning = androidx.compose.ui.graphics.Path().apply {
+            moveTo(4f * u, 4f * u)
+            lineTo(20f * u, 4f * u)
+            lineTo(22f * u, 9f * u)
+            lineTo(2f * u, 9f * u)
+            close()
+        }
+        drawPath(awning, tint, style = style)
+        val body = androidx.compose.ui.graphics.Path().apply {
+            moveTo(4f * u, 9f * u)
+            lineTo(4f * u, 20f * u)
+            lineTo(20f * u, 20f * u)
+            lineTo(20f * u, 9f * u)
+        }
+        drawPath(body, tint, style = style)
+        val door = androidx.compose.ui.graphics.Path().apply {
+            moveTo(10f * u, 20f * u)
+            lineTo(10f * u, 14f * u)
+            lineTo(14f * u, 14f * u)
+            lineTo(14f * u, 20f * u)
+        }
+        drawPath(door, tint, style = style)
+    }
+}
+
+/** A door frame open on the right with an arrow leaving it. */
+@Composable
+fun LogoutGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val u = size.minDimension / 24f
+        val style = Stroke(
+            width = 2f * u,
+            cap = StrokeCap.Round,
+            join = androidx.compose.ui.graphics.StrokeJoin.Round,
+        )
+        val frame = androidx.compose.ui.graphics.Path().apply {
+            moveTo(10f * u, 4f * u)
+            lineTo(5f * u, 4f * u)
+            lineTo(5f * u, 20f * u)
+            lineTo(10f * u, 20f * u)
+        }
+        drawPath(frame, tint, style = style)
+        drawLine(tint, Offset(10f * u, 12f * u), Offset(20f * u, 12f * u), style.width, StrokeCap.Round)
+        val head = androidx.compose.ui.graphics.Path().apply {
+            moveTo(16f * u, 8f * u)
+            lineTo(20f * u, 12f * u)
+            lineTo(16f * u, 16f * u)
+        }
+        drawPath(head, tint, style = style)
+    }
+}
