@@ -34,7 +34,7 @@ Berkas baru `ui/navigation/MainNavigation.kt`:
 
 ### 4.2 Komponen
 
-- `MainNavRail(current: MainDestination, onSelect: (MainDestination) -> Unit, onLogout: () -> Unit)`: kolom 72dp, latar putih, garis pemisah kanan; dari atas `BrandMark` 32dp, lalu tiga item (ikon 24dp di atas label 12sp, target >= 48dp, item aktif bertinta aksen dengan ikon dan label aksen gelap, tidak aktif abu), ruang lentur, lalu "Keluar" di dasar. Semantik `selected` pada item aktif; `contentDescription` memuat label.
+- `MainNavRail(current: MainDestination, onSelect: (MainDestination) -> Unit, onLogout: () -> Unit)`: kolom selebar `72.dp * fontScale` (skala font sistem dibatasi 1,0 sampai 1,5, jadi tepat 72dp pada skala normal dan label "Pengaturan" tidak terpotong pada font besar; diverifikasi pada skala 1,3), latar putih, garis pemisah kanan; dari atas `BrandMark` 32dp, lalu tiga item (ikon 24dp di atas label 12sp, target >= 48dp, item aktif bertinta aksen dengan ikon dan label aksen gelap, tidak aktif abu), ruang lentur, lalu "Keluar" di dasar. Semantik `selected` pada item aktif; `contentDescription` memuat label.
 - `MainNavDrawerContent(current, onSelect, onLogout)`: item yang sama berformat baris (ikon plus label, tinggi >= 48dp) di dalam `ModalNavigationDrawer`.
 - Glyph baru `StorefrontGlyph` (Kasir) dan `LogoutGlyph` di `ui/components/Glyphs.kt`; `HistoryGlyph` dan `SettingsGlyph` dipakai ulang.
 
@@ -49,7 +49,7 @@ Berkas baru `ui/navigation/MainNavigation.kt`:
 
 - **Dashboard:** `isTablet` dari `isWideWindow()`. `CatalogHeader` kehilangan tombol riwayat, roda gigi, dan Keluar serta parameternya (`onLogout`, `onOpenSettings`, `onOpenHistory`). Tersisa merek (`weight(1f)`), pill sinkron, dan cari. Di ponsel (`!isWideWindow()`) header mendapat tombol menu 48dp (`contentDescription` "Menu") di kiri merek yang memanggil `onOpenMenu`.
 - **Riwayat dan Pengaturan:** panah kembali di bar atas hanya tampil bila `!isWideWindow()`; `BackHandler` dan perilaku Back sistem tidak berubah. Riwayat memakai `isWideWindow()` (bukan lebar sisa) untuk memilih dua panel atau satu panel.
-- **Inset:** rail mengonsumsi inset kiri dan vertikal (`windowInsetsPadding(WindowInsets.safeDrawing.only(Start + Vertical))` pada rail, `consumeWindowInsets` pada konten di sebelahnya) supaya `safeDrawing` di Dashboard, Riwayat, dan Pengaturan tidak menambah padding ganda.
+- **Inset:** rail memberi padding pada dirinya sendiri (`windowInsetsPadding(WindowInsets.safeDrawing.only(Start + Vertical))`), sedangkan konten di sebelahnya hanya mengonsumsi inset **Start** (`consumeWindowInsets`) supaya `safeDrawing` di Dashboard, Riwayat, dan Pengaturan tidak menambah padding kiri ganda. Inset vertikal tidak dikonsumsi karena tiap layar masih membutuhkan padding status bar dan bilah navigasi sendiri (koreksi dari tulisan awal spec "Start + Vertical", diputuskan saat implementasi dan dikonfirmasi reviewer).
 - **Pembayaran dan dialog layar penuh:** menutupi rail seperti menutupi layar lainnya; tidak ada perpindahan saat membayar.
 - **Login dan Splash:** tanpa rail dan tanpa drawer.
 
