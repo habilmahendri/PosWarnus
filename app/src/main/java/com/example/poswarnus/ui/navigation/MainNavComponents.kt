@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -49,6 +50,8 @@ import com.example.poswarnus.ui.theme.TextPrimary
 import com.example.poswarnus.ui.theme.TextSecondary
 
 private const val LogoutLabel = "Keluar"
+private val RailBaseWidth = 72.dp
+private const val RailMaxFontScale = 1.5f
 
 @Composable
 private fun DestinationGlyph(destination: MainDestination, tint: Color, modifier: Modifier) {
@@ -66,6 +69,7 @@ fun MainNavRail(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val railWidth = RailBaseWidth * LocalDensity.current.fontScale.coerceIn(1f, RailMaxFontScale)
     Row(
         modifier = modifier
             .background(SurfaceWhite)
@@ -76,7 +80,7 @@ fun MainNavRail(
     ) {
         Column(
             modifier = Modifier
-                .width(72.dp)
+                .width(railWidth)
                 .fillMaxHeight()
                 .padding(vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -119,8 +123,7 @@ private fun RailItem(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (selected) AccentTint else Color.Transparent)
+            .background(if (selected) AccentTint else Color.Transparent, RoundedCornerShape(10.dp))
             .selectable(selected = selected, onClick = onClick, role = role)
             .semantics { contentDescription = label }
             .padding(vertical = 6.dp),
