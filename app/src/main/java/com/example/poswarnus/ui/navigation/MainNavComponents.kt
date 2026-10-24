@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.poswarnus.ui.components.BrandMark
@@ -116,7 +117,7 @@ private fun RailItem(
     val tint = if (selected) AccentOrangeDark else TextSecondary
     Column(
         modifier = Modifier
-            .width(64.dp)
+            .fillMaxWidth()
             .heightIn(min = 56.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(if (selected) AccentTint else Color.Transparent)
@@ -133,6 +134,8 @@ private fun RailItem(
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             color = tint,
             maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Visible,
             modifier = Modifier.clearAndSetSemantics { },
         )
     }
