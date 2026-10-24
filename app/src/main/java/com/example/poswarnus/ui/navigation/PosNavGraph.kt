@@ -57,6 +57,7 @@ fun PosNavGraph(navController: NavHostController = rememberNavController()) {
                     }
                 },
                 onOpenSettings = { navController.navigate(PosDestinations.SETTINGS) },
+                onOpenHistory = { navController.navigate(PosDestinations.HISTORY) },
                 // Owned by this entry, so popping the dashboard on logout destroys them along with
                 // any open dialog; the shared CartStore is cleared by LogoutViewModel.
                 cartViewModel = hiltViewModel(viewModelStoreOwner = backStackEntry),

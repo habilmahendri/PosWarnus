@@ -241,3 +241,40 @@ fun SettingsGlyph(tint: Color, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/** A counter-clockwise arrow around a clock hand (24x24 viewBox: `M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8`, `M3 3v5h5`, `M12 7v5l3 2`). */
+@Composable
+fun HistoryGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val u = size.minDimension / 24f
+        val style = Stroke(
+            width = 2f * u,
+            cap = StrokeCap.Round,
+            join = androidx.compose.ui.graphics.StrokeJoin.Round,
+        )
+        // Both SVG arcs share the circle centred at (12, 12) r=9, so they merge into one 315 degree sweep.
+        val arc = androidx.compose.ui.graphics.Path().apply {
+            moveTo(3f * u, 12f * u)
+            arcTo(
+                rect = androidx.compose.ui.geometry.Rect(3f * u, 3f * u, 21f * u, 21f * u),
+                startAngleDegrees = 180f,
+                sweepAngleDegrees = -315f,
+                forceMoveTo = false,
+            )
+            lineTo(3f * u, 8f * u)
+        }
+        drawPath(arc, tint, style = style)
+        val head = androidx.compose.ui.graphics.Path().apply {
+            moveTo(3f * u, 3f * u)
+            lineTo(3f * u, 8f * u)
+            lineTo(8f * u, 8f * u)
+        }
+        drawPath(head, tint, style = style)
+        val hand = androidx.compose.ui.graphics.Path().apply {
+            moveTo(12f * u, 7f * u)
+            lineTo(12f * u, 12f * u)
+            lineTo(15f * u, 14f * u)
+        }
+        drawPath(hand, tint, style = style)
+    }
+}

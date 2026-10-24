@@ -79,6 +79,7 @@ import com.example.poswarnus.ui.payment.PaymentDialog
 import com.example.poswarnus.ui.payment.PaymentViewModel
 import com.example.poswarnus.ui.components.BrandMark
 import com.example.poswarnus.ui.components.CloseGlyph
+import com.example.poswarnus.ui.components.HistoryGlyph
 import com.example.poswarnus.ui.components.SearchGlyph
 import com.example.poswarnus.ui.components.SettingsGlyph
 import com.example.poswarnus.ui.components.TrainingBanner
@@ -125,6 +126,7 @@ private val GridBottomPadding = 16.dp
 fun DashboardScreen(
     onLoggedOut: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenHistory: () -> Unit,
     dashboardViewModel: DashboardViewModel = hiltViewModel(),
     logoutViewModel: LogoutViewModel = hiltViewModel(),
     cartViewModel: CartViewModel = hiltViewModel(),
@@ -193,6 +195,7 @@ fun DashboardScreen(
                 onRefresh = dashboardViewModel::refresh,
                 onLogout = { logoutViewModel.logout(onLoggedOut) },
                 onOpenSettings = onOpenSettings,
+                onOpenHistory = onOpenHistory,
                 modifier = Modifier.weight(1f),
             )
             if (isTablet) {
@@ -310,6 +313,7 @@ private fun CatalogHeader(
     onSearchQueryChange: (String) -> Unit,
     onLogout: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenHistory: () -> Unit,
     syncPill: SyncPill,
 ) {
     @Composable
@@ -329,6 +333,16 @@ private fun CatalogHeader(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+    }
+
+    @Composable
+    fun HistoryButton() {
+        IconButton(
+            onClick = onOpenHistory,
+            modifier = Modifier.size(48.dp).semantics { contentDescription = "Riwayat transaksi" },
+        ) {
+            HistoryGlyph(tint = TextPrimary, modifier = Modifier.size(24.dp))
         }
     }
 
@@ -371,6 +385,7 @@ private fun CatalogHeader(
                 ) {
                     Brand(modifier = Modifier.weight(1f))
                     SyncStatusPill(pill = syncPill)
+                    HistoryButton()
                     SettingsButton()
                     LogoutButton()
                 }
@@ -399,6 +414,7 @@ private fun CatalogHeader(
                     onValueChange = onSearchQueryChange,
                     modifier = Modifier.width(320.dp),
                 )
+                HistoryButton()
                 SettingsButton()
                 LogoutButton()
             }
@@ -418,6 +434,7 @@ private fun CatalogPane(
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -436,6 +453,7 @@ private fun CatalogPane(
                 onSearchQueryChange = onSearchQueryChanged,
                 onLogout = onLogout,
                 onOpenSettings = onOpenSettings,
+                onOpenHistory = onOpenHistory,
                 syncPill = state.syncPill,
             )
         }
