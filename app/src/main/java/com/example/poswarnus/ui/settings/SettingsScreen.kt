@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -16,10 +17,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -34,6 +37,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -134,27 +138,41 @@ fun SettingsScreen(
         HorizontalDivider(color = LineDefault, thickness = 1.dp)
     }
 
-    // TODO(Task 4): replace with the real PIN-entry dialog (text field + submitting/error UI).
-    if (state.pinDialog != null) {
+    state.pinDialog?.let { pinDialog ->
         AlertDialog(
-            onDismissRequest = viewModel::onPinCancel,
+            onDismissRequest = { if (!pinDialog.submitting) viewModel.onPinCancel() },
             shape = RoundedCornerShape(10.dp),
             containerColor = SurfaceWhite,
-            title = { Text("Nyalakan Mode Pelatihan?", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary) },
+            title = { Text("Masukkan PIN Pemilik", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary) },
             text = {
-                Text(
-                    "Pesanan saat ini akan dikosongkan dan penjualan tidak disimpan.",
-                    fontSize = 15.sp,
-                    color = TextSecondary,
-                )
+                Column {
+                    Text("Pesanan saat ini akan dikosongkan.", fontSize = 15.sp, color = TextSecondary)
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = pinDialog.pinInput,
+                        onValueChange = viewModel::onPinInputChange,
+                        singleLine = true,
+                        enabled = !pinDialog.submitting,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        isError = pinDialog.error != null,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    pinDialog.error?.let {
+                        Text(it, fontSize = 13.sp, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::onPinCancel, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(onClick = viewModel::onPinCancel, enabled = !pinDialog.submitting, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text("Batal", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                 }
             },
             confirmButton = {
-                TextButton(onClick = viewModel::onPinSubmit, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(
+                    onClick = viewModel::onPinSubmit,
+                    enabled = !pinDialog.submitting && pinDialog.pinInput.isNotEmpty(),
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
                     Text("Nyalakan", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = AccentOrange)
                 }
             },
