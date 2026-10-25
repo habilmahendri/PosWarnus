@@ -15,6 +15,7 @@ Status as of 2026-10-23. Source of truth for scope is [PRD-pos.md](PRD-pos.md); 
 | 6a | Settings screen + Training Mode (toggle, banner, no persistence or sync while on) | 4.13, Settings part of 4.10 | Done (merged to `main` locally, not pushed); verified on the tablet emulator and at phone size |
 | 7 | Transaction History (incl. "pending sync") | 4.11 | Done (merged to `main` locally, not pushed); verified on the tablet emulator and at phone size |
 | 7b | Navigation rail (tablet) and drawer (phone): Kasir, Riwayat, Pengaturan, Keluar with a logout confirmation; Dashboard header decluttered | none (UX, after 6a and 7) | Done (merged to `main` locally, not pushed); verified on the tablet emulator, at 880dp, at font scale 1.3 and at phone size |
+| 6c | Training Mode fraud mitigation: owner PIN (verified server-side via RPC) gates turning the toggle on, every enable/disable logged to a Supabase audit table | addendum to 4.13, not in the original PRD scope (added 2026-10-25 after a fraud-risk discussion) | In progress |
 | 8 | "Frequently bought together" suggestions in the cart | 4.14 | Planned |
 | 9 | Bluetooth receipt printing (formerly 6b): printer pairing in Settings, formatted receipt, "LATIHAN" receipt marker, "Cetak struk" goes live | rest of 4.10, receipt part of 4.13 | Planned, deliberately last: the owner is still ordering the Bluetooth printer (2026-10-24), so it cannot be built or tested on hardware yet (own spec) |
 
