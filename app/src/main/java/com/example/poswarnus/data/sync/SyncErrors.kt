@@ -9,7 +9,7 @@ import java.io.IOException
 object SyncErrors {
     private const val MAX_LENGTH = 200
 
-    private fun isOffline(e: Throwable) =
+    internal fun isOffline(e: Throwable) =
         e is IOException || e is HttpRequestException || e is HttpRequestTimeoutException
 
     private fun isExpiredSession(e: Throwable) = e is RestException && e.statusCode == 401

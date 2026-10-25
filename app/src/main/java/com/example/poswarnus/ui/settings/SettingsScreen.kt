@@ -134,9 +134,10 @@ fun SettingsScreen(
         HorizontalDivider(color = LineDefault, thickness = 1.dp)
     }
 
-    if (state.confirmingEnable) {
+    // TODO(Task 4): replace with the real PIN-entry dialog (text field + submitting/error UI).
+    if (state.pinDialog != null) {
         AlertDialog(
-            onDismissRequest = viewModel::cancelEnable,
+            onDismissRequest = viewModel::onPinCancel,
             shape = RoundedCornerShape(10.dp),
             containerColor = SurfaceWhite,
             title = { Text("Nyalakan Mode Pelatihan?", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary) },
@@ -148,12 +149,12 @@ fun SettingsScreen(
                 )
             },
             dismissButton = {
-                TextButton(onClick = viewModel::cancelEnable, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(onClick = viewModel::onPinCancel, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text("Batal", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                 }
             },
             confirmButton = {
-                TextButton(onClick = viewModel::confirmEnable, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(onClick = viewModel::onPinSubmit, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text("Nyalakan", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = AccentOrange)
                 }
             },
