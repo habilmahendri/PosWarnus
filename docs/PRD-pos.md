@@ -157,7 +157,7 @@ A lightweight recommendation feature to nudge sales toward the menu items the ou
 A practice mode that lets a new cashier (or someone giving a demo) run the entire ordering flow end to end without creating real transactions. Catalog, categories and modifiers/variants are the live data, so practice matches what the cashier will actually see; only the outcome is discarded.
 
 **Acceptance criteria**
-- Settings has a "Mode Pelatihan" toggle. Turning it on asks for confirmation first; turning it off clears the current cart.
+- Settings has a "Mode Pelatihan" toggle. Turning it off clears the current cart.
 - While active, a persistent, high-contrast banner ("MODE PELATIHAN – transaksi tidak disimpan") is visible on every screen from Dashboard through Payment Success, so it cannot be mistaken for a real sale.
 - The whole flow works exactly as in normal mode: browse, Menu Detail Dialog (4.4), cart (4.5), tax/service charge (4.6), cash payment with change (4.7) and the success state (4.8).
 - Completing a payment in training mode does NOT write a transaction record, does NOT enter the sync queue (4.9), and never reaches Supabase. Training sales never appear in Transaction History (4.11) or in any end-of-shift totals.
@@ -165,6 +165,17 @@ A practice mode that lets a new cashier (or someone giving a demo) run the entir
 - Training mode is switched off automatically on logout and on a cold app start, so a cashier never serves a real customer in it by accident.
 - Training history is not kept: there is no way to review past practice runs (see Non-Goals).
 - The training flag is part of the in-memory/transaction model from the start of Phase 4, so the payment and sync layers can skip persistence without a later retrofit.
+
+**Owner-PIN gate (fraud control)**
+
+Because a training sale is never recorded anywhere, a dishonest cashier could otherwise switch it on, ring up a real paying customer while it's active, and pocket the cash with no trace. To close that hole:
+
+- Turning the toggle ON does not activate training mode immediately: it opens a PIN dialog asking for a separate owner PIN (distinct from the cashier's own login). Turning it OFF is immediate, no PIN required.
+- The PIN is never stored on the device or checked client-side: entry is verified against a hashed PIN held in Supabase via a server-side (SECURITY DEFINER) RPC, the same pattern as `submit_transaction` (4.9). The app never sees the hash.
+- Verifying the PIN requires network. If the device is offline, the dialog shows "Perlu koneksi untuk verifikasi PIN" and training mode stays off — there is no offline fallback or cached PIN.
+- A wrong PIN shows "PIN salah" and training mode stays off. (Rate-limiting/lockout after repeated wrong attempts is out of scope for this pass — see Non-Goals.)
+- The owner sets or changes the PIN directly in Supabase (SQL), not from inside the app.
+- Every transition (`enable` and `disable`) is written to an audit log in Supabase with the cashier id and timestamp, so the owner can review who turned training mode on and when even after the fact. Cashiers can only insert their own audit rows — they cannot read or alter the log or the PIN table.
 
 ### 4.14 Frequently Bought Together Suggestions
 
@@ -187,12 +198,13 @@ Explicitly out of scope for this PRD:
 
 - **Multi-outlet / multi-branch support.** One app instance serves exactly one outlet; no outlet switching.
 - **Refund / void of completed transactions.** No cancellation or reversal flow from this app.
-- **Roles/permissions beyond "cashier."** Every authenticated user is treated identically; no manager/admin-only features inside this app.
+- **Roles/permissions beyond "cashier."** Every authenticated user is treated identically; no manager/admin-only features inside this app. (The Training Mode owner PIN in 4.13 is a single shared secret checked server-side, not a user role or account — it does not add a second login tier.)
 - **Catalog/category/stock/tax management UI.** Entirely owned by the separate admin website project; this app only reads that data (and writes transactions).
 - **Non-cash payment methods** (card, QR/e-wallet, split payment) — cash only for this PRD.
 - **Cross-device/cross-outlet sales reporting or analytics** — the in-app history (4.11) is local-to-device and transaction-level only; aggregate reporting lives on the admin website.
 - **Self-registration / account management UI** inside this app (sign-up, password reset flows) — accounts are provisioned externally.
 - **Training-run history or scoring.** Training mode (4.13) discards its sales; reviewing or grading past practice runs is out of scope.
+- **Owner-PIN management UI, lockout, and real-time alerting.** The Training Mode owner PIN (4.13) is set/changed directly in Supabase, not from inside the app; there is no rate-limit/lockout after repeated wrong attempts and no push/SMS alert when training mode is switched on — the Supabase audit log is reviewed manually by the owner.
 - **Machine-learning, seasonal or cross-device recommendation models, and admin-curated suggestion pairs.** Suggestions (4.14) are a simple per-device co-occurrence count; an admin-managed fallback for the cold-start period is a possible later enhancement, not part of this PRD.
 
 ## 6. Key Risks / Trade-offs Called Out
