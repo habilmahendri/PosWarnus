@@ -9,6 +9,7 @@ import com.example.poswarnus.data.remote.TrainingPinRemoteDataSource
 import com.example.poswarnus.data.sync.SyncErrors
 import com.example.poswarnus.data.training.TrainingModeStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,7 @@ class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
 ) : ViewModel() {
     private val pinDialog = MutableStateFlow<PinDialogState?>(null)
+    private var pinVerificationJob: Job? = null
 
     val uiState: StateFlow<SettingsUiState> =
         combine(trainingMode.enabled, pinDialog) { enabled, dialog ->
@@ -50,6 +52,7 @@ class SettingsViewModel @Inject constructor(
         if (checked) {
             pinDialog.value = PinDialogState()
         } else {
+            pinVerificationJob?.cancel()
             pinDialog.value = null
             trainingMode.disable()
             viewModelScope.launch {
@@ -72,7 +75,7 @@ class SettingsViewModel @Inject constructor(
         val dialog = pinDialog.value ?: return
         if (dialog.submitting) return
         pinDialog.value = dialog.copy(submitting = true)
-        viewModelScope.launch {
+        pinVerificationJob = viewModelScope.launch {
             try {
                 val verified = trainingPinRemote.verifyPin(dialog.pinInput)
                 if (verified) {

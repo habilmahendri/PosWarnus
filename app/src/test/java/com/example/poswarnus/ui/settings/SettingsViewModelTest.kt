@@ -7,6 +7,7 @@ import com.example.poswarnus.data.remote.TrainingPinRemoteDataSource
 import com.example.poswarnus.data.training.TrainingModeStore
 import com.example.poswarnus.ui.cart.CartLine
 import com.example.poswarnus.ui.cart.CartStore
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -171,7 +172,8 @@ class SettingsViewModelTest {
     @Test
     fun `submitting twice before the first response only calls verifyPin once`() = runTest(UnconfinedTestDispatcher()) {
         var calls = 0
-        val remote = FakeTrainingPinRemoteDataSource(result = { calls++; true })
+        val deferred = CompletableDeferred<Boolean>()
+        val remote = FakeTrainingPinRemoteDataSource(result = { calls++; deferred.await() })
         viewModel = SettingsViewModel(store, remote, fakeAuthRepository)
         backgroundScope.launch { viewModel.uiState.collect {} }
         viewModel.onTrainingToggle(true)
@@ -181,6 +183,36 @@ class SettingsViewModelTest {
         viewModel.onPinSubmit()
 
         assertEquals(1, calls)
+        deferred.complete(true)
+    }
+
+    @Test
+    fun `toggling off while verification is in flight cancels it so a late true never re-enables`() = runTest(UnconfinedTestDispatcher()) {
+        val deferred = CompletableDeferred<Boolean>()
+        val remote = FakeTrainingPinRemoteDataSource(result = { deferred.await() })
+        viewModel = SettingsViewModel(store, remote, fakeAuthRepository)
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        viewModel.onTrainingToggle(true)
+        viewModel.onPinInputChange("123456")
+        viewModel.onPinSubmit()
+
+        viewModel.onTrainingToggle(false)
+        deferred.complete(true)
+
+        assertFalse(store.enabled.value)
+        assertEquals(null, viewModel.uiState.value.pinDialog)
+    }
+
+    @Test
+    fun `a failed audit write does not block disabling`() = runTest(UnconfinedTestDispatcher()) {
+        remote.recordTransitionThrows = RuntimeException("insert failed")
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        store.enable()
+
+        viewModel.onTrainingToggle(false)
+
+        assertFalse(store.enabled.value)
+        assertEquals(null, viewModel.uiState.value.pinDialog)
     }
 
     @Test
