@@ -1,7 +1,10 @@
 package com.example.poswarnus.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,14 +19,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -33,16 +35,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.poswarnus.ui.components.ArrowBackGlyph
+import com.example.poswarnus.ui.components.BackspaceGlyph
 import com.example.poswarnus.ui.components.TrainingBanner
 import com.example.poswarnus.ui.navigation.isWideWindow
 import com.example.poswarnus.ui.theme.AccentOrange
@@ -148,19 +151,22 @@ fun SettingsScreen(
             text = {
                 Column {
                     Text("Pesanan saat ini akan dikosongkan.", fontSize = 15.sp, color = TextSecondary)
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = pinDialog.pinInput,
-                        onValueChange = viewModel::onPinInputChange,
-                        singleLine = true,
-                        enabled = !pinDialog.submitting,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                        isError = pinDialog.error != null,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    Spacer(Modifier.height(12.dp))
+                    PinDisplay(digitCount = pinDialog.pinInput.length, isError = pinDialog.error != null)
                     pinDialog.error?.let {
-                        Text(it, fontSize = 13.sp, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
+                        Text(
+                            it,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
                     }
+                    Spacer(Modifier.height(16.dp))
+                    PinKeypad(
+                        disabled = pinDialog.submitting,
+                        onDigit = { digit -> viewModel.onPinInputChange(pinDialog.pinInput + digit) },
+                        onBackspace = { viewModel.onPinInputChange(pinDialog.pinInput.dropLast(1)) },
+                    )
                 }
             },
             dismissButton = {
@@ -186,5 +192,70 @@ fun SettingsScreen(
                 }
             },
         )
+    }
+}
+
+/** Bordered box showing the PIN as masked dots, one per digit typed — never the digits themselves. */
+@Composable
+private fun PinDisplay(digitCount: Int, isError: Boolean) {
+    val shape = RoundedCornerShape(8.dp)
+    val borderColor = if (isError) MaterialTheme.colorScheme.error else LineStrong
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clip(shape)
+            .border(1.dp, borderColor, shape)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .semantics {
+                contentDescription = if (digitCount == 0) "PIN kosong" else "PIN terisi $digitCount digit"
+            },
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            repeat(digitCount) {
+                Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(TextPrimary))
+            }
+        }
+    }
+}
+
+private val PinKeypadKeys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫")
+
+/** Numeric keypad for the PIN dialog, built in-app so the PIN is never typed through the system keyboard. */
+@Composable
+private fun PinKeypad(disabled: Boolean, onDigit: (String) -> Unit, onBackspace: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PinKeypadKeys.chunked(3).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { key ->
+                    if (key.isEmpty()) {
+                        Spacer(modifier = Modifier.weight(1f).height(48.dp))
+                    } else {
+                        val shape = RoundedCornerShape(8.dp)
+                        val isBackspace = key == "⌫"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clip(shape)
+                                .background(SurfaceWhite)
+                                .border(1.dp, LineDefault, shape)
+                                .clickable(enabled = !disabled, role = Role.Button) {
+                                    if (isBackspace) onBackspace() else onDigit(key)
+                                }
+                                .semantics { contentDescription = if (isBackspace) "Hapus" else key },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (isBackspace) {
+                                BackspaceGlyph(tint = TextPrimary, modifier = Modifier.size(22.dp))
+                            } else {
+                                Text(key, fontSize = 20.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
